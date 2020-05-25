@@ -15,13 +15,28 @@ voc = [
 ]
 # Create gophersat object
 gs = Gophersat(voc=voc)
-# There are no obstacles on third first cases
-gs.push_pretty_clause(["¬P0,0"])
-gs.push_pretty_clause(["¬P1,0"])
-gs.push_pretty_clause(["¬P0,1"])
-gs.push_pretty_clause(["¬W0,0"])
-gs.push_pretty_clause(["¬W1,0"])
-gs.push_pretty_clause(["¬W0,1"])
+clauses = [
+    # There are no obstacles on third first cases
+    ["¬P0_0"],
+    ["¬P1_0"],
+    ["¬P0_1"],
+    ["¬W0_0"],
+    ["¬W1_0"],
+    ["¬W0_1"],
+]
+# Neither a pit, the wumpus nor gold can be in se same case
+"""
+voici ce que je veux faire, faut en faire une cnf :
+(!P et !W et !G) ou (P et !W et !G) ou (!P et W et !G) ou (!P et !W et G)
+for i in range(N):
+    for j in range(N):
+        clauses.extend([[f"¬P{i}_{j}",]])
+"""
+
+
+# Finally add clauses
+for i in range(len(clauses)):
+    gs.push_pretty_clause(clauses[i])
 
 # Solve...
 print(gs.dimacs())

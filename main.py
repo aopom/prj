@@ -54,6 +54,11 @@ def mainloop():
         for j in range(WORLD_SIZE)
         for letter in ["P", "W", "B", "S", "G"]
     ]
+
+    # Create gophersat object
+    global gs
+    gs = Gophersat(voc=voc)
+
     print(knowledge_to_clauses())
 
     for i in range(WORLD_SIZE):

@@ -1,8 +1,6 @@
 from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
 
-from pprint import pprint
-
 
 class Variable:
     def __init__(self, positive, letter, i, j):
@@ -23,11 +21,6 @@ class Variable:
 
     def __neg__(self):
         return Variable(not self.positive, self.letter, self.i, self.j)
-
-
-def print_array_multiline(arraaaay):
-    for line in arraaaay:
-        print(line)
 
 
 def explo_full_cautious(ww):  # coute 800
@@ -51,13 +44,10 @@ def knowledge_to_clauses():
             if knowledge[i][j] != "?":
                 for letter in "PWBSG":
                     clauses.append(Variable((letter in knowledge[i][j]), letter, i, j))
-
     return clauses
 
 
 def interrogate(clause):
-    """retourne un booleen
-    """
     gs.push_pretty_clause(clause)
     output = gs.solve()
     gs.pop_clause()
@@ -72,6 +62,12 @@ def test_variable(variable):
     b = interrogate([(-variable).pretty()])
 
     return a - b
+
+
+def safe_case(i, j):
+    """should you probe this case without cautious_probe ?
+    """
+    return 1 == test_variable(Variable(False, "W", i, j)) and 1 == test_variable(Variable(False, "P", i, j))
 
 
 def mainloop():

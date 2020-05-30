@@ -115,7 +115,6 @@ def random_world(n: int, pit_rate: float = 0.25, gold_rate: float = 0.025):
 
     return world
 
-
 class WumpusWorld:
     def __init__(self, n: int = 4, rand: bool = False):
         random.seed(12)
@@ -149,6 +148,12 @@ class WumpusWorld:
                     res[i][j] = self.__world[i][j]
 
         return res
+
+    def print_knowledge(self):
+        print("Knowledge:")
+        for line in self.get_knowledge():
+            print(line)
+
 
     def get_position(self) -> Tuple[int, int]:
         return self.__position

@@ -1,30 +1,49 @@
 from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
 
+
 def print_array_multiline(arraaaay):
     print()
     for line in arraaaay:
         print(line)
 
-def explo_full_cautious(ww): #coute 800
+
+def explo_full_cautious(ww):  # coute 800
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             ww.cautious_probe(i, j)
 
 
-def explo_full_simple_probe(ww): #coute 4160
+def explo_full_simple_probe(ww):  # coute 4160
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             ww.probe(i, j)
 
+
+def knowledge_to_clauses():
+    clauses = []
+    size = ww.get_n()
+    knowledge = ww.get_knowledge()
+    for i in range(size):
+        for j in range(size):
+            if knowledge[i][j] != "?":
+                for letter in "PWBSG":
+                    if letter in knowledge[i][j]:
+                        clauses.append("{}_{}_{}".format(letter, i, j))
+                    else:
+                        clauses.append("-{}_{}_{}".format(letter, i, j))
+
+    return clauses
+
+
 def mainloop():
-
-
     # Create world
+    global ww
     ww = WumpusWorld()
     print("cost : {}".format(ww.get_cost()))
 
     # World width
+    global WORLD_SIZE
     WORLD_SIZE = ww.get_n()
 
     # Generate Vocabulary
@@ -35,12 +54,15 @@ def mainloop():
         for j in range(WORLD_SIZE)
         for letter in ["P", "W", "B", "S", "G"]
     ]
+    print(knowledge_to_clauses())
 
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             ww.cautious_probe(i, j)
 
     ww.print_knowledge()
+
+    print(knowledge_to_clauses())
     print("cost : {}".format(ww.get_cost()))
 
     # print(ww)
@@ -56,7 +78,6 @@ def mainloop():
     #     ["-W1_0"],
     #     ["-W0_1"],
     # ]
-
 
 
 # # Finally add clauses

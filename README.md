@@ -2,6 +2,8 @@
 
 Projet du Wumpus, Paco Pompeani et Joris Placette, 2020
 
+[Dépot Git](https://gitlab.utc.fr/ppompean/prj-ai27)
+
 ## Préambule
 
 Desolé  le code est degueu, on a mis des globals ... 🐷
@@ -10,7 +12,7 @@ Nous avons modifié les libriairies Gopherpysat et WumpusWorld un petit peu pour
 
 ## Execution : 
 
-./python3 main.py
+python3 main.py
 
 ## Changer la seed de WumpusWorld
 

@@ -130,7 +130,8 @@ def fill_rules():
             # pas d'odeur ni de puit donc pas de wumpus autour ( un puit cache une odeur pestidenntielle)
             # for i in range(WORLD_SIZE):
             # for j in range(WORLD_SIZE):
-            clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
+            clause = [Variable(True, "S", i, j).pretty()]
+            # clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
             if i > 0:
                 game_rules.append(clause + [Variable(False, "W", i - 1, j).pretty()])
             if j > 0:

@@ -1,3 +1,4 @@
+import random
 from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
 from lib.variable import *
@@ -23,11 +24,29 @@ def explo_full_simple_probe():  # coute 4160
 
 
 def explo_full_gopherpysat():
-    known_tiles = [[False for i in range(WORLD_SIZE)] for j in range(WORLD_SIZE)]
-    known_tiles[0][0] = True
-    for i in range(WORLD_SIZE):
-        for j in range(WORLD_SIZE):
-            print(i, j, safe_tile(i, j))
+    # première action
+    ww.probe(0, 0)
+    unknown_tiles = [":troll_face:"]
+    # While some tiles are unknown
+    while len(unknown_tiles) > 0:
+        # add new knowledge
+        for clause in knowledge_to_clauses():
+            gs.push_variable_clause(clause)
+        # pick a tile
+        knowledge = ww.get_knowledge()
+        len_knowledge = len(knowledge)
+        unknown_tiles = [(i, j) for i in range(len_knowledge) for j in range(len_knowledge) if knowledge[i][j] == "?"]
+        safe_tiles = [(i, j) for (i, j) in unknown_tiles if safe_tile(i, j)]
+        # probe
+        if len(safe_tiles) > 0:
+            for (i, j) in safe_tiles:
+                ww.probe(i, j)
+                print("ninja probe {} {}".format(i, j))
+        elif len(unknown_tiles) > 0:
+            (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
+            ww.cautious_probe(i, j)
+            print("cautious probe {} {}".format(i, j))
+        ww.print_knowledge()
 
 
 def fill_rules():
@@ -111,7 +130,8 @@ def fill_rules():
             # pas d'odeur ni de puit donc pas de wumpus autour ( un puit cache une odeur pestidenntielle)
             # for i in range(WORLD_SIZE):
             # for j in range(WORLD_SIZE):
-            clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
+            clause = [Variable(True, "S", i, j).pretty()]
+            # clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
             if i > 0:
                 game_rules.append(clause + [Variable(False, "W", i - 1, j).pretty()])
             if j > 0:
@@ -175,7 +195,8 @@ def safe_tile(i, j):
 def mainloop():
     # Create world
     global ww
-    ww = WumpusWorld()
+    ww = WumpusWorld(n=10, seed=23)
+    print(ww)
     print("cost : {}".format(ww.get_cost()))
 
     # World width
@@ -197,29 +218,14 @@ def mainloop():
 
     global game_rules
     game_rules = fill_rules()
-    # print("game rules:")
-    # beauty_print(game_rules)
+    for clause in game_rules:
+        gs.push_pretty_clause(clause)
+
+    assert gs.solve() == True
 
     explo_full_gopherpysat()
-
     print("cost : {}".format(ww.get_cost()))
-
-    # print(test_variable(Variable(True, "W", 0, 0)))
-    # print(test_variable(Variable(True, "W", 3, 3)))
-    # print(test_variable(Variable(True, "W", 2, 0)))
-    # print(ww)
-
-    # # Create gophersat object
-    # gs = Gophersat(voc=voc)
-    # clauses = [
-    #     # There are no obstacles on third first tile
-    #     ["-P0_0"],
-    #     ["-P1_0"],
-    #     ["-P0_1"],
-    #     ["-W0_0"],
-    #     ["-W1_0"],
-    #     ["-W0_1"],
-    # ]
+    ww.print_knowledge()
 
 
 # # Finally add clauses
@@ -327,9 +333,12 @@ def test_gamerules():
                 assert test_variable(Variable(True, "S", i, j)) == 0
                 assert test_variable(Variable(False, "S", i, j)) == 0
 
+    # for (i, j) in ((1, 0), (3, 0), (2, 1)):
+    # assert interrogate([Variable(True, "P", i, j), Variable(True, "P", i, j)])
+
     print("cost : {}".format(ww.get_cost()))
 
 
 if __name__ == "__main__":
-    # mainloop()
-    test_gamerules()
+    mainloop()
+    # test_gamerules()

@@ -6,15 +6,34 @@
 - [x] transformer du ww.knowledge en clauses
 - [x] formalisation des clauses
 - [x] Permettre de poser une question au gopherpysat
-- [ ] Formaliser nos idées VU QUE XOR CA MARCHE PAS ! 
-- [ ] CNFiser nos idées 
-- [ ] Nourrir le gopherpysat en clauses :fork_and_knife: 
-- [ ] tester nos fonctions
+- [x] Formaliser nos idées VU QUE XOR CA MARCHE PAS ! 
+- [x] CNFiser nos idées 
+- [x] Nourrir le gopherpysat en clauses :fork_and_knife: 
+- [x] tester nos fonctions
 - [ ] mettre dans les regles qu' on sent pass les brises quand y' a un wumpus et *vis-versa*
-- [ ] 
-- [ ] 
-- [ ] 
 
+### mainloop explore intelligent
+
+- [x] Prioriser les case à explorer en premier par ce qu'elles sont safe
+
+
+- Probe en 0,0
+- tant que tout n'a pas ete exploré
+    - Prioriser les case à explorer en premier par ce qu'elles sont safe
+    - si cases_safe non vide
+        - `probe()` une case safe
+    - sinon
+        - cautious_probe() une case au pif (idéalement loin de truc deja exploré)
+
+```python
+
+unknown_tiles = [(i, j) for i in range(len(knowledge)) for j in range(len(knowledge)) if knowledge[i][j]=="?"]
+
+safe_tiles = [(i, j) for (i, j) in unknown_tiles if safe_tile(i, j)]
+
+unsafe_tiles = [(i, j) for (i, j) in unknown_tiles if not (i, j) in safe_tiles]
+
+```
 
 ## Logique choix type de probe
 Si gopherpysat dit : danger -> cautious probe
@@ -98,7 +117,7 @@ for i in range(WORLD_SIZE):
 ```python
 for i in range(WORLD_SIZE):
     for j in range(WORLD_SIZE):
-        clause = [ Variable(False, "B", i, j) ]
+        clause = [ Variable(False, "S", i, j) ]
         if i > 0:
             clause.append(Variable(True, "W", i-1, j))
         if j > 0:
@@ -110,13 +129,13 @@ for i in range(WORLD_SIZE):
         pit_near_breeze.append(clause)
 ```
 
-### pas d'odeur ni de puit donc pas de wumpus autour
-- !Si_j and ! P_ij => !Wi+1_j and !Wi-1_j and !Wi_j+1 and !Wi_j-1
-    - (Si_j ∨ Pi_j ∨ ¬Wi+1_j) ∧ (Si_j ∨ Pi_j ∨ ¬Wi-1_j) ∧ (Si_j ∨ Pi_j ∨ ¬Wi_j+1) ∧ (Si_j ∨ Pi_j ∨ ¬Wi_j-1)
+### pas d'odeur donc pas de wumpus autour
+- !Si_j => !Wi+1_j and !Wi-1_j and !Wi_j+1 and !Wi_j-1
+    - (Si_j ∨ ¬Wi+1_j) ∧ (Si_j ∨ ¬Wi-1_j) ∧ (Si_j ∨ ¬Wi_j+1) ∧ (Si_j ∨ ¬Wi_j-1)
 ```python
 for i in range(WORLD_SIZE):
     for j in range(WORLD_SIZE):
-        clause = [ Variable(True, "S", i, j), Variable(True, "P", i, j) ]
+        clause = [ Variable(True, "S", i, j) ]
         if i > 0:
             game_rules.append(clause + [Variable(False, "W", i-1, j)])
         if j > 0:
@@ -147,24 +166,23 @@ for i in range(WORLD_SIZE):
 
 ```
 
-### un puit est entouré de environ 4 breeze sauf sur les bords
-P => B and C and D and E
+### un wumpus est entouré de environ 4 strench sauf sur les bords
+W => S and T and U and V
 
-(B OR (NOT P)) AND (C OR (NOT P)) AND (D OR (NOT P)) AND (E OR (NOT P))
+(S OR (NOT W)) AND (T OR (NOT W)) AND (U OR (NOT W)) AND (V OR (NOT W))
 
 ```python
 for i in range(WORLD_SIZE):
     for j in range(WORLD_SIZE):
-        clause = [ Variable(False, "P", i, j)]
+        clause = [ Variable(False, "W", i, j)]
         if i > 0:
-            game_rules.append(clause + [Variable(True, "B", i-1, j)])
+            game_rules.append(clause + [Variable(True, "S", i-1, j)])
         if j > 0:
-            game_rules.append(clause + [Variable(True, "B", i, j-1)])
+            game_rules.append(clause + [Variable(True, "S", i, j-1)])
         if i < WORLD_SIZE - 1:
-            game_rules.append(clause + [Variable(True, "B", i+1, j)])
+            game_rules.append(clause + [Variable(True, "S", i+1, j)])
         if j < WORLD_SIZE - 1:
-            game_rules.append(clause + [Variable(True, "B", i, j+1)])
-
+            game_rules.append(clause + [Variable(True, "S", i, j+1)])
 ```
 
 
@@ -203,4 +221,19 @@ for i in range(WORLD_SIZE):
         if j < WORLD_SIZE - 1:
             game_rules.append(clause + [Variable(False, "P", i, j+1)])
 ```
-
+### pas d'odeur ni de puit donc pas de wumpus autour
+- !Si_j and ! P_ij => !Wi+1_j and !Wi-1_j and !Wi_j+1 and !Wi_j-1
+    - (Si_j ∨ Pi_j ∨ ¬Wi+1_j) ∧ (Si_j ∨ Pi_j ∨ ¬Wi-1_j) ∧ (Si_j ∨ Pi_j ∨ ¬Wi_j+1) ∧ (Si_j ∨ Pi_j ∨ ¬Wi_j-1)
+```python
+for i in range(WORLD_SIZE):
+    for j in range(WORLD_SIZE):
+        clause = [ Variable(True, "S", i, j), Variable(True, "P", i, j) ]
+        if i > 0:
+            game_rules.append(clause + [Variable(False, "W", i-1, j)])
+        if j > 0:
+            game_rules.append(clause + [Variable(False, "W", i, j-1)])
+        if i < WORLD_SIZE - 1:
+            game_rules.append(clause + [Variable(False, "W", i+1, j)])
+        if j < WORLD_SIZE - 1:
+            game_rules.append(clause + [Variable(False, "W", i, j+1)])
+```

@@ -195,6 +195,7 @@ def safe_tile(i, j):
 def mainloop():
     # Create world
     global ww
+    # We provide a world length and a seed
     ww = WumpusWorld(n=10, seed=23)
     print(ww)
     print("cost : {}".format(ww.get_cost()))

@@ -85,11 +85,11 @@ class WumpusWorld:
         return (f"[OK] you feel {self.__world[i][j]}", self.__world[i][j])
 
     def probe(self, i, j) -> str:
-        #if i == 0 and j == 0 and self.__gold_found:
+        # if i == 0 and j == 0 and self.__gold_found:
         #    return "[OK] you win !!!"
 
         if (
-            #abs(i - self.__position[0]) + abs(j - self.__position[1]) != 1 or
+            # abs(i - self.__position[0]) + abs(j - self.__position[1]) != 1 or
             i < 0
             or j < 0
             or i >= 4
@@ -104,7 +104,7 @@ class WumpusWorld:
             self.cost += 1000
             return "[KO] The wizard catches a glimpse of the unthinkable and turns mad"
         self.cost += 10
-        a,b = self.get_percepts()
+        a, b = self.get_percepts()
         print(a)
         return b
 

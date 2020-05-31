@@ -17,4 +17,3 @@ class Variable:
 
     def __neg__(self):
         return Variable(not self.positive, self.letter, self.i, self.j)
-

@@ -25,9 +25,7 @@ TODO :
 
 
 class Gophersat:
-    def __init__(
-        self, gophersat_exec: str = "gophersat", voc: List[str] = [], cnf_file: str = ""
-    ):
+    def __init__(self, gophersat_exec: str = "gophersat", voc: List[str] = [], cnf_file: str = ""):
         # self.find_exec()
         self.__executable = gophersat_exec
 
@@ -94,9 +92,7 @@ class Gophersat:
         with open(temporary_file_name, "w", newline="\n") as f:
             f.write(self.dimacs())
 
-        res = subprocess.run(
-            [self.__executable, f.name], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+        res = subprocess.run([self.__executable, f.name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         os.remove(temporary_file_name)
 

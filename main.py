@@ -2,6 +2,7 @@ from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
 from lib.variable import *
 
+
 def beauty_print(double_array):
     print("[")
     for line in double_array:
@@ -32,17 +33,17 @@ def explo_full_gopherpysat():
 def fill_rules():
     # First tile rule
     game_rules = [
-        [Variable(False, "W", 0, 0)],
-        [Variable(False, "P", 0, 0)],
-        [Variable(False, "S", 0, 0)],
-        [Variable(False, "B", 0, 0)],
+        [Variable(False, "W", 0, 0).pretty()],
+        [Variable(False, "P", 0, 0).pretty()],
+        [Variable(False, "S", 0, 0).pretty()],
+        [Variable(False, "B", 0, 0).pretty()],
     ]
     # One thing per tile
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
-            game_rules.append([Variable(False, "G", i, j), Variable(False, "W", i, j)])
-            game_rules.append([Variable(False, "G", i, j), Variable(False, "P", i, j)])
-            game_rules.append([Variable(False, "P", i, j), Variable(False, "W", i, j)])
+            game_rules.append([Variable(False, "G", i, j).pretty(), Variable(False, "W", i, j).pretty()])
+            game_rules.append([Variable(False, "G", i, j).pretty(), Variable(False, "P", i, j).pretty()])
+            game_rules.append([Variable(False, "P", i, j).pretty(), Variable(False, "W", i, j).pretty()])
 
     # One Wumpus per game
     for i in range(WORLD_SIZE):
@@ -50,35 +51,49 @@ def fill_rules():
             for k in range(WORLD_SIZE):
                 for l in range(WORLD_SIZE):
                     if i != k or j != l:
-                        game_rules.append([Variable(False, "W", i, j), Variable(False, "W", k, l)])
+                        game_rules.append([Variable(False, "W", i, j).pretty(), Variable(False, "W", k, l).pretty()])
 
     # Pits around the Breeze
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
-            clause = [Variable(False, "B", i, j)]
+            clause = [Variable(False, "B", i, j).pretty()]
             if i > 0:
-                clause.append(Variable(True, "P", i - 1, j))
+                clause.append(Variable(True, "P", i - 1, j).pretty())
             if j > 0:
-                clause.append(Variable(True, "P", i, j - 1))
+                clause.append(Variable(True, "P", i, j - 1).pretty())
             if i < WORLD_SIZE - 1:
-                clause.append(Variable(True, "P", i + 1, j))
+                clause.append(Variable(True, "P", i + 1, j).pretty())
             if j < WORLD_SIZE - 1:
-                clause.append(Variable(True, "P", i, j + 1))
+                clause.append(Variable(True, "P", i, j + 1).pretty())
             game_rules.append(clause)
 
     # Wumpus around the Strench
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
-            clause = [Variable(False, "B", i, j)]
+            clause = [Variable(False, "B", i, j).pretty()]
             if i > 0:
-                clause.append(Variable(True, "W", i - 1, j))
+                clause.append(Variable(True, "W", i - 1, j).pretty())
             if j > 0:
-                clause.append(Variable(True, "W", i, j - 1))
+                clause.append(Variable(True, "W", i, j - 1).pretty())
             if i < WORLD_SIZE - 1:
-                clause.append(Variable(True, "W", i + 1, j))
+                clause.append(Variable(True, "W", i + 1, j).pretty())
             if j < WORLD_SIZE - 1:
-                clause.append(Variable(True, "W", i, j + 1))
+                clause.append(Variable(True, "W", i, j + 1).pretty())
             game_rules.append(clause)
+
+    # pas d'odeur ni de puit donc pas de wumpus autour ( un puit cache une odeur pestidenntielle)
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            clause = [ Variable(False, "S", i, j).pretty(), Variable(False, "P", i, j).pretty() ]
+            if i > 0:
+                game_rules.append(clause + [Variable(False, "W", i-1, j).pretty()])
+            if j > 0:
+                game_rules.append(clause + [Variable(False, "W", i, j-1).pretty()])
+            if i < WORLD_SIZE - 1:
+                game_rules.append(clause + [Variable(False, "W", i+1, j).pretty()])
+            if j < WORLD_SIZE - 1:
+                game_rules.append(clause + [Variable(False, "W", i, j+1).pretty()])
+
     return game_rules
 
 
@@ -90,7 +105,7 @@ def knowledge_to_clauses():
         for j in range(size):
             if knowledge[i][j] != "?":
                 for letter in "PWBSG":
-                    clauses.append(Variable((letter in knowledge[i][j]), letter, i, j))
+                    clauses.append([Variable((letter in knowledge[i][j]), letter, i, j)])
     return clauses
 
 
@@ -178,5 +193,104 @@ def mainloop():
 # print(gs.get_model())
 
 
+def test_gamerules():
+# Create world
+    global ww
+    ww = WumpusWorld()
+    print(ww)
+    print("cost : {}".format(ww.get_cost()))
+
+    # World width
+    global WORLD_SIZE
+    WORLD_SIZE = ww.get_n()
+
+
+    # Generate Vocabulary
+    # Pit, Wumpus, Breeze, Stench, Gold
+    voc = [
+        Variable(True, letter, i, j).pretty()
+        for i in range(WORLD_SIZE)
+        for j in range(WORLD_SIZE)
+        for letter in ["P", "W", "B", "S", "G"]
+    ]
+
+    # Create gophersat object
+    global gs
+    gs = Gophersat(voc=voc)
+
+    global game_rules
+    game_rules = fill_rules()
+    for clause in game_rules:
+        gs.push_pretty_clause(clause)
+    
+    assert gs.solve() == True;
+
+    # on ne sait pas ou le wumpus est ni les pits
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            if (i, j) != (0, 0) and (i, j) != (0, 1) and (i,j) != (1, 0):
+                for letter in "WPBS":
+                    # on ne sait rien  sur ces cases là!
+                    assert test_variable(Variable(True, letter, i, j)) == 0
+                    assert test_variable(Variable(False, letter, i, j)) == 0
+            elif (i, j) == (0,0) :
+                for letter in "WPBS":
+                    # Y' a R
+                    assert test_variable(Variable(True, letter, i, j)) == -1
+                    assert test_variable(Variable(False, letter, i, j)) == 1
+            elif (i, j) == (0, 1) or (i, j) == (1, 0):
+                # on ne sait pas s' il y a une brise ou odeur pestidentielle 
+                assert test_variable(Variable(True, "B", i, j)) == 0
+                assert test_variable(Variable(False, "B", i, j)) == 0
+                assert test_variable(Variable(True, "S", i, j)) == 0
+                assert test_variable(Variable(False, "S", i, j)) == 0
+    
+    # pas de mechant en 0, 1 
+    # print("""test_variable(Variable(True, "W", 0, 1)): """, test_variable(Variable(True, "W", 0, 1)))
+    # assert test_variable(Variable(True, "W", 0, 1)) == -1
+    # assert test_variable(Variable(False, "W", 0, 1)) == 1
+    # assert test_variable(Variable(True, "P", 0, 1)) == -1
+    # assert test_variable(Variable(False, "P", 0, 1)) == 1
+
+    # pas de mechant en 1, 0
+    # assert test_variable(Variable(True, "W", 1, 0)) == -1
+    # assert test_variable(Variable(False, "W", 1, 0)) == 1
+    # assert test_variable(Variable(True, "P", 1, 0)) == -1
+    # assert test_variable(Variable(False, "P", 1, 0)) == 1
+
+    # print("game rules:")
+    # beauty_print(game_rules)
+
+    # runtime tests
+    ww.print_knowledge()
+    ww.cautious_probe(2, 0) # trouve un wumpus
+    for clause in knowledge_to_clauses():
+        gs.push_variable_clause(clause)
+        
+    ww.print_knowledge()
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            if (i, j) != (2, 0):
+                assert test_variable(Variable(True, "W", i, j)) == -1
+                assert test_variable(Variable(False, "W", i, j)) == 1
+            elif (i, j) == (0,0) :
+                for letter in "WPBS":
+                    # Y' a R
+                    assert test_variable(Variable(True, letter, i, j)) == -1
+                    assert test_variable(Variable(False, letter, i, j)) == 1
+            elif (i, j) == (0, 1) or (i, j) == (1, 0):
+                # on ne sait pas s' il y a une brise ou odeur pestidentielle 
+                assert test_variable(Variable(True, "B", i, j)) == 0
+                assert test_variable(Variable(False, "B", i, j)) == 0
+                assert test_variable(Variable(True, "S", i, j)) == 0
+                assert test_variable(Variable(False, "S", i, j)) == 0
+
+
+
+
+    print("cost : {}".format(ww.get_cost()))
+
 if __name__ == "__main__":
-    mainloop()
+    # mainloop()
+    test_gamerules()
+    

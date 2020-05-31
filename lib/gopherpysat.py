@@ -3,8 +3,7 @@ import sys
 import subprocess
 import uuid
 import tempfile
-import variable
-
+from . import variable
 from typing import List, Dict
 
 __author__ = "Sylvain Lagrue"

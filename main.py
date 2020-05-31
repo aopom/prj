@@ -46,17 +46,17 @@ def fill_rules():
             game_rules.append([Variable(False, "G", i, j).pretty(), Variable(False, "P", i, j).pretty()])
             game_rules.append([Variable(False, "P", i, j).pretty(), Variable(False, "W", i, j).pretty()])
 
-    # One Wumpus per game
-    for i in range(WORLD_SIZE):
-        for j in range(WORLD_SIZE):
+            # One Wumpus per game
+            # for i in range(WORLD_SIZE):
+            # for j in range(WORLD_SIZE):
             for k in range(WORLD_SIZE):
                 for l in range(WORLD_SIZE):
                     if i != k or j != l:
                         game_rules.append([Variable(False, "W", i, j).pretty(), Variable(False, "W", k, l).pretty()])
 
-    # Pits around the Breeze
-    for i in range(WORLD_SIZE):
-        for j in range(WORLD_SIZE):
+            # Pits around the Breeze
+            # for i in range(WORLD_SIZE):
+            # for j in range(WORLD_SIZE):
             clause = [Variable(False, "B", i, j).pretty()]
             if i > 0:
                 clause.append(Variable(True, "P", i - 1, j).pretty())
@@ -68,9 +68,9 @@ def fill_rules():
                 clause.append(Variable(True, "P", i, j + 1).pretty())
             game_rules.append(clause)
 
-    # Wumpus around the Strench
-    for i in range(WORLD_SIZE):
-        for j in range(WORLD_SIZE):
+            # Wumpus around the Strench
+            # for i in range(WORLD_SIZE):
+            # for j in range(WORLD_SIZE):
             clause = [Variable(False, "S", i, j).pretty()]
             if i > 0:
                 clause.append(Variable(True, "W", i - 1, j).pretty())
@@ -82,9 +82,9 @@ def fill_rules():
                 clause.append(Variable(True, "W", i, j + 1).pretty())
             game_rules.append(clause)
 
-    # un puit est entouré de environ 4 breeze sauf sur les bords
-    for i in range(WORLD_SIZE):
-        for j in range(WORLD_SIZE):
+            # un puit est entouré de environ 4 breeze sauf sur les bords
+            # for i in range(WORLD_SIZE):
+            # for j in range(WORLD_SIZE):
             clause = [Variable(False, "P", i, j).pretty()]
             if i > 0:
                 game_rules.append(clause + [Variable(True, "B", i - 1, j).pretty()])
@@ -95,9 +95,9 @@ def fill_rules():
             if j < WORLD_SIZE - 1:
                 game_rules.append(clause + [Variable(True, "B", i, j + 1).pretty()])
 
-    # un wumpus est entouré de environ 4 strench sauf sur les bords
-    for i in range(WORLD_SIZE):
-        for j in range(WORLD_SIZE):
+            # un wumpus est entouré de environ 4 strench sauf sur les bords
+            # for i in range(WORLD_SIZE):
+            # for j in range(WORLD_SIZE):
             clause = [Variable(False, "W", i, j).pretty()]
             if i > 0:
                 game_rules.append(clause + [Variable(True, "S", i - 1, j).pretty()])
@@ -108,31 +108,31 @@ def fill_rules():
             if j < WORLD_SIZE - 1:
                 game_rules.append(clause + [Variable(True, "S", i, j + 1).pretty()])
 
-    # pas d'odeur ni de puit donc pas de wumpus autour ( un puit cache une odeur pestidenntielle)
-    # for i in range(WORLD_SIZE):
-    #     for j in range(WORLD_SIZE):
-    #         clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
-    #         if i > 0:
-    #             game_rules.append(clause + [Variable(False, "W", i - 1, j).pretty()])
-    #         if j > 0:
-    #             game_rules.append(clause + [Variable(False, "W", i, j - 1).pretty()])
-    #         if i < WORLD_SIZE - 1:
-    #             game_rules.append(clause + [Variable(False, "W", i + 1, j).pretty()])
-    #         if j < WORLD_SIZE - 1:
-    #             game_rules.append(clause + [Variable(False, "W", i, j + 1).pretty()])
-    #
-    # pas de vent ni de wumpus donc pas de puit autour
-    #    for i in range(WORLD_SIZE):
-    #        for j in range(WORLD_SIZE):
-    #            clause = [Variable(True, "B", i, j).pretty(), Variable(True, "W", i, j).pretty()]
-    #            if i > 0:
-    #                game_rules.append(clause + [Variable(False, "P", i - 1, j).pretty()])
-    #            if j > 0:
-    #                game_rules.append(clause + [Variable(False, "P", i, j - 1).pretty()])
-    #            if i < WORLD_SIZE - 1:
-    #                game_rules.append(clause + [Variable(False, "P", i + 1, j).pretty()])
-    #            if j < WORLD_SIZE - 1:
-    #                game_rules.append(clause + [Variable(False, "P", i, j + 1).pretty()])
+            # pas d'odeur ni de puit donc pas de wumpus autour ( un puit cache une odeur pestidenntielle)
+            # for i in range(WORLD_SIZE):
+            # for j in range(WORLD_SIZE):
+            clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
+            if i > 0:
+                game_rules.append(clause + [Variable(False, "W", i - 1, j).pretty()])
+            if j > 0:
+                game_rules.append(clause + [Variable(False, "W", i, j - 1).pretty()])
+            if i < WORLD_SIZE - 1:
+                game_rules.append(clause + [Variable(False, "W", i + 1, j).pretty()])
+            if j < WORLD_SIZE - 1:
+                game_rules.append(clause + [Variable(False, "W", i, j + 1).pretty()])
+
+            # pas de vent ni de wumpus donc pas de puit autour
+            # for i in range(WORLD_SIZE):
+            # for j in range(WORLD_SIZE):
+            clause = [Variable(True, "B", i, j).pretty(), Variable(True, "W", i, j).pretty()]
+            if i > 0:
+                game_rules.append(clause + [Variable(False, "P", i - 1, j).pretty()])
+            if j > 0:
+                game_rules.append(clause + [Variable(False, "P", i, j - 1).pretty()])
+            if i < WORLD_SIZE - 1:
+                game_rules.append(clause + [Variable(False, "P", i + 1, j).pretty()])
+            if j < WORLD_SIZE - 1:
+                game_rules.append(clause + [Variable(False, "P", i, j + 1).pretty()])
 
     return game_rules
 

@@ -32,12 +32,13 @@ def explo_full_gopherpysat():
 
 def fill_rules():
     # First tile rule
-    game_rules = [
+    """game_rules = [
         [Variable(False, "W", 0, 0).pretty()],
         [Variable(False, "P", 0, 0).pretty()],
         [Variable(False, "S", 0, 0).pretty()],
         [Variable(False, "B", 0, 0).pretty()],
-    ]
+    ]"""
+    game_rules = []
     # One thing per tile
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
@@ -84,28 +85,28 @@ def fill_rules():
     # pas d'odeur ni de puit donc pas de wumpus autour ( un puit cache une odeur pestidenntielle)
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
-            clause = [ Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty() ]
+            clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
             if i > 0:
-                game_rules.append(clause + [Variable(False, "W", i-1, j).pretty()])
+                game_rules.append(clause + [Variable(False, "W", i - 1, j).pretty()])
             if j > 0:
-                game_rules.append(clause + [Variable(False, "W", i, j-1).pretty()])
+                game_rules.append(clause + [Variable(False, "W", i, j - 1).pretty()])
             if i < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "W", i+1, j).pretty()])
+                game_rules.append(clause + [Variable(False, "W", i + 1, j).pretty()])
             if j < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "W", i, j+1).pretty()])
+                game_rules.append(clause + [Variable(False, "W", i, j + 1).pretty()])
 
     # pas de vent ni de wumpus donc pas de puit autour
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
-            clause = [ Variable(True, "B", i, j).pretty(), Variable(True, "W", i, j).pretty() ]
+            clause = [Variable(True, "B", i, j).pretty(), Variable(True, "W", i, j).pretty()]
             if i > 0:
-                game_rules.append(clause + [Variable(False, "P", i-1, j).pretty()])
+                game_rules.append(clause + [Variable(False, "P", i - 1, j).pretty()])
             if j > 0:
-                game_rules.append(clause + [Variable(False, "P", i, j-1).pretty()])
+                game_rules.append(clause + [Variable(False, "P", i, j - 1).pretty()])
             if i < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "P", i+1, j).pretty()])
+                game_rules.append(clause + [Variable(False, "P", i + 1, j).pretty()])
             if j < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "P", i, j+1).pretty()])
+                game_rules.append(clause + [Variable(False, "P", i, j + 1).pretty()])
 
     return game_rules
 
@@ -207,7 +208,7 @@ def mainloop():
 
 
 def test_gamerules():
-# Create world
+    # Create world
     global ww
     ww = WumpusWorld()
     print(ww)
@@ -216,7 +217,6 @@ def test_gamerules():
     # World width
     global WORLD_SIZE
     WORLD_SIZE = ww.get_n()
-
 
     # Generate Vocabulary
     # Pit, Wumpus, Breeze, Stench, Gold
@@ -235,31 +235,42 @@ def test_gamerules():
     game_rules = fill_rules()
     for clause in game_rules:
         gs.push_pretty_clause(clause)
-    
-    assert gs.solve() == True;
+
+    assert gs.solve() == True
+
+    ww.probe(0, 0)  # première action
+    for clause in knowledge_to_clauses():
+        gs.push_variable_clause(clause)
+    ww.print_knowledge()
+
+    for (i, j) in [(0, 1), (1, 0)]:
+        print("""test_variable(Variable(True, "B", i, j))""", test_variable(Variable(True, "B", i, j)))
+        print("""test_variable(Variable(False, "B", i, j))""", test_variable(Variable(False, "B", i, j)))
+        print("""test_variable(Variable(True, "S", i, j))""", test_variable(Variable(True, "S", i, j)))
+        print("""test_variable(Variable(False, "S", i, j))""", test_variable(Variable(False, "S", i, j)))
 
     # on ne sait pas ou le wumpus est ni les pits
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
-            if (i, j) != (0, 0) and (i, j) != (0, 1) and (i,j) != (1, 0):
+            if (i, j) != (0, 0) and (i, j) != (0, 1) and (i, j) != (1, 0):
                 for letter in "WPBS":
                     # on ne sait rien  sur ces cases là!
                     assert test_variable(Variable(True, letter, i, j)) == 0
                     assert test_variable(Variable(False, letter, i, j)) == 0
-            elif (i, j) == (0,0) :
+            elif (i, j) == (0, 0):
                 for letter in "WPBS":
                     # Y' a R
                     assert test_variable(Variable(True, letter, i, j)) == -1
                     assert test_variable(Variable(False, letter, i, j)) == 1
             elif (i, j) == (0, 1) or (i, j) == (1, 0):
-                # on ne sait pas s' il y a une brise ou odeur pestidentielle 
+                # on ne sait pas s' il y a une brise ou odeur pestidentielle
                 print("""test_variable(Variable(True, "B", i, j)) == 0   """, test_variable(Variable(True, "B", i, j)))
                 assert test_variable(Variable(True, "B", i, j)) == 0
                 assert test_variable(Variable(False, "B", i, j)) == 0
                 assert test_variable(Variable(True, "S", i, j)) == 0
                 assert test_variable(Variable(False, "S", i, j)) == 0
-    
-    # pas de mechant en 0, 1 
+
+    # pas de mechant en 0, 1
     print("""test_variable(Variable(True, "W", 0, 1)): """, test_variable(Variable(True, "W", 0, 1)))
     assert test_variable(Variable(True, "W", 0, 1)) == -1
     assert test_variable(Variable(False, "W", 0, 1)) == 1
@@ -277,34 +288,31 @@ def test_gamerules():
 
     # runtime tests
     ww.print_knowledge()
-    ww.cautious_probe(2, 0) # trouve un wumpus
+    ww.cautious_probe(2, 0)  # trouve un wumpus
     for clause in knowledge_to_clauses():
         gs.push_variable_clause(clause)
-        
+
     ww.print_knowledge()
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             if (i, j) != (2, 0):
                 assert test_variable(Variable(True, "W", i, j)) == -1
                 assert test_variable(Variable(False, "W", i, j)) == 1
-            elif (i, j) == (0,0) :
+            elif (i, j) == (0, 0):
                 for letter in "WPBS":
                     # Y' a R
                     assert test_variable(Variable(True, letter, i, j)) == -1
                     assert test_variable(Variable(False, letter, i, j)) == 1
             elif (i, j) == (0, 1) or (i, j) == (1, 0):
-                # on ne sait pas s' il y a une brise ou odeur pestidentielle 
+                # on ne sait pas s' il y a une brise ou odeur pestidentielle
                 assert test_variable(Variable(True, "B", i, j)) == 0
                 assert test_variable(Variable(False, "B", i, j)) == 0
                 assert test_variable(Variable(True, "S", i, j)) == 0
                 assert test_variable(Variable(False, "S", i, j)) == 0
 
-
-
-
     print("cost : {}".format(ww.get_cost()))
+
 
 if __name__ == "__main__":
     # mainloop()
     test_gamerules()
-    

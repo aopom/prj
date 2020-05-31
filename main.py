@@ -23,16 +23,84 @@ class Variable:
         return Variable(not self.positive, self.letter, self.i, self.j)
 
 
-def explo_full_cautious(ww):  # coute 800
+def beauty_print(double_array):
+    print("[")
+    for line in double_array:
+        print(line, ",", sep="")
+    print("]")
+
+
+def explo_full_cautious():  # coute 800
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             ww.cautious_probe(i, j)
 
 
-def explo_full_simple_probe(ww):  # coute 4160
+def explo_full_simple_probe():  # coute 4160
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             ww.probe(i, j)
+
+
+def explo_full_gopherpysat():
+    known_tiles = [[False for i in range(WORLD_SIZE)] for j in range(WORLD_SIZE)]
+    known_tiles[0][0] = True
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            print(i, j, safe_tile(i, j))
+
+
+def fill_rules():
+    # First tile rule
+    game_rules = [
+        [Variable(False, "W", 0, 0)],
+        [Variable(False, "P", 0, 0)],
+        [Variable(False, "S", 0, 0)],
+        [Variable(False, "B", 0, 0)],
+    ]
+    # One thing per tile
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            game_rules.append([Variable(False, "G", i, j), Variable(False, "W", i, j)])
+            game_rules.append([Variable(False, "G", i, j), Variable(False, "P", i, j)])
+            game_rules.append([Variable(False, "P", i, j), Variable(False, "W", i, j)])
+
+    # One Wumpus per game
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            for k in range(WORLD_SIZE):
+                for l in range(WORLD_SIZE):
+                    if i != k or j != l:
+                        game_rules.append([Variable(False, "W", i, j), Variable(False, "W", k, l)])
+
+    # Pits around the Breeze
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            clause = [Variable(False, "B", i, j)]
+            if i > 0:
+                clause.append(Variable(True, "P", i - 1, j))
+            if j > 0:
+                clause.append(Variable(True, "P", i, j - 1))
+            if i < WORLD_SIZE - 1:
+                clause.append(Variable(True, "P", i + 1, j))
+            if j < WORLD_SIZE - 1:
+                clause.append(Variable(True, "P", i, j + 1))
+            game_rules.append(clause)
+
+    # Wumpus around the Strench
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            clause = [Variable(False, "B", i, j)]
+            if i > 0:
+                clause.append(Variable(True, "W", i - 1, j))
+            if j > 0:
+                clause.append(Variable(True, "W", i, j - 1))
+            if i < WORLD_SIZE - 1:
+                clause.append(Variable(True, "W", i + 1, j))
+            if j < WORLD_SIZE - 1:
+                clause.append(Variable(True, "W", i, j + 1))
+            game_rules.append(clause)
+    return game_rules
 
 
 def knowledge_to_clauses():
@@ -64,8 +132,8 @@ def test_variable(variable):
     return a - b
 
 
-def safe_case(i, j):
-    """should you probe this case without cautious_probe ?
+def safe_tile(i, j):
+    """should you probe this tile without cautious_probe ?
     """
     return 1 == test_variable(Variable(False, "W", i, j)) and 1 == test_variable(Variable(False, "P", i, j))
 
@@ -83,7 +151,7 @@ def mainloop():
     # Generate Vocabulary
     # Pit, Wumpus, Breeze, Stench, Gold
     voc = [
-        f"{letter}_{i}_{j}"
+        Variable(True, letter, i, j).pretty()
         for i in range(WORLD_SIZE)
         for j in range(WORLD_SIZE)
         for letter in ["P", "W", "B", "S", "G"]
@@ -93,32 +161,24 @@ def mainloop():
     global gs
     gs = Gophersat(voc=voc)
 
-    print(knowledge_to_clauses())
+    global game_rules
+    game_rules = fill_rules()
+    # print("game rules:")
+    # beauty_print(game_rules)
 
-    for i in range(WORLD_SIZE):
-        for j in range(WORLD_SIZE):
-            # if i != 3 and j != 3:
-            ww.cautious_probe(i, j)
+    explo_full_gopherpysat()
 
-    ww.print_knowledge()
-
-    print(knowledge_to_clauses())
     print("cost : {}".format(ww.get_cost()))
 
-    clauses = knowledge_to_clauses()
-    for clause in clauses:
-        # print(clause.pretty())
-        gs.push_pretty_clause([clause.pretty()])
-
-    print(test_variable(Variable(True, "W", 0, 0)))
-    print(test_variable(Variable(True, "W", 3, 3)))
-    print(test_variable(Variable(True, "W", 2, 0)))
+    # print(test_variable(Variable(True, "W", 0, 0)))
+    # print(test_variable(Variable(True, "W", 3, 3)))
+    # print(test_variable(Variable(True, "W", 2, 0)))
     # print(ww)
 
     # # Create gophersat object
     # gs = Gophersat(voc=voc)
     # clauses = [
-    #     # There are no obstacles on third first cases
+    #     # There are no obstacles on third first tile
     #     ["-P0_0"],
     #     ["-P1_0"],
     #     ["-P0_1"],

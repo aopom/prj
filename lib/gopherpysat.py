@@ -88,6 +88,7 @@ class Gophersat:
 
         temporary_dir = tempfile.gettempdir()
         temporary_file_name = f"{os.path.join(temporary_dir, uuid.uuid4().hex)}.cnf"
+        # temporary_file_name = "/home/ao/utc/7/prj-ai27/ramfs/tmp.cnf"
 
         with open(temporary_file_name, "w", newline="\n") as f:
             f.write(self.dimacs())

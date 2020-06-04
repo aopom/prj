@@ -58,9 +58,17 @@ def fill_rules():
         [Variable(False, "B", 0, 0).pretty()],
     ]"""
     game_rules = []
-    # One thing per tile
+
+    almeno_uno_wumpus = []
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
+            almeno_uno_wumpus.append(Variable(True, "W", i, j).pretty())
+
+    game_rules.append(almeno_uno_wumpus)
+
+    for i in range(WORLD_SIZE):
+        for j in range(WORLD_SIZE):
+            # One thing per tile
             game_rules.append([Variable(False, "G", i, j).pretty(), Variable(False, "W", i, j).pretty()])
             game_rules.append([Variable(False, "G", i, j).pretty(), Variable(False, "P", i, j).pretty()])
             game_rules.append([Variable(False, "P", i, j).pretty(), Variable(False, "W", i, j).pretty()])
@@ -170,6 +178,8 @@ def knowledge_to_clauses():
 
 
 def interrogate(clause):
+    global interrogation_count
+    interrogation_count += 1
     gs.push_pretty_clause(clause)
     output = gs.solve()
     gs.pop_clause()
@@ -192,11 +202,76 @@ def safe_tile(i, j):
     return 1 == test_variable(Variable(False, "W", i, j)) and 1 == test_variable(Variable(False, "P", i, j))
 
 
+def safe_tile2(i, j):
+    # Are we sure there is a wumpus ?
+    no_wumpus = Variable(False, "W", i, j)
+    there_is_a_wumpus = 0 == interrogate([no_wumpus.pretty()])
+    if there_is_a_wumpus:
+        return -1
+
+    # Are we sure there is a pit ?
+    no_pit = Variable(False, "P", i, j)
+    there_is_a_pit = 0 == interrogate([no_pit.pretty()])
+    if there_is_a_pit:
+        return -1
+
+    # Are we sure there is no wumpus ?
+    there_is_no_wumpus = 0 == interrogate([(-no_wumpus).pretty()])
+    if not there_is_no_wumpus:
+        return 0
+
+    # Are we sure there is a pit ?
+    there_is_no_pit = 0 == interrogate([(-no_pit).pretty()])
+    return there_is_no_pit
+
+
+def explo_full_gopherpysat2():
+    # première action
+    ww.probe(0, 0)
+    unknown_tiles = [":troll_face:"]
+    # While some tiles are unknown
+    while len(unknown_tiles) > 0:
+        # add new knowledge
+        for clause in knowledge_to_clauses():
+            gs.push_variable_clause(clause)
+        # pick a tile
+        knowledge = ww.get_knowledge()
+        len_knowledge = len(knowledge)
+        unknown_tiles = [(i, j) for i in range(len_knowledge) for j in range(len_knowledge) if knowledge[i][j] == "?"]
+        safe_tiles = []
+        unsafe_tiles = []
+        for (i, j) in unknown_tiles:
+            safe = safe_tile2(i, j)
+            if safe == 1:
+                safe_tiles.append((i, j))
+            elif safe == -1:
+                unsafe_tiles.append((i, j))
+
+        # probe
+        knew = False
+        if len(safe_tiles) > 0:
+            knew = True
+            for (i, j) in safe_tiles:
+                ww.probe(i, j)
+                print("ninja probe {} {}".format(i, j))
+        if len(unsafe_tiles) > 0:
+            knew = True
+            for (i, j) in unsafe_tiles:
+                ww.cautious_probe(i, j)
+                print("sure cautious probe {} {}".format(i, j))
+
+        elif not knew and len(unknown_tiles) > 0:
+            (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
+            ww.cautious_probe(i, j)
+            print("cautious probe {} {}".format(i, j))
+        # ww.print_knowledge()
+
+
 def mainloop():
     # Create world
     global ww
     # We provide a world length and a seed
-    ww = WumpusWorld(n=10, seed=23)
+    ww = WumpusWorld(n=8, seed=21)
     print(ww)
     print("cost : {}".format(ww.get_cost()))
 
@@ -222,10 +297,12 @@ def mainloop():
     for clause in game_rules:
         gs.push_pretty_clause(clause)
 
-    assert gs.solve() == True
+    global interrogation_count
+    interrogation_count = 0
 
     explo_full_gopherpysat()
     print("cost : {}".format(ww.get_cost()))
+    print("interrogation_count : {}".format(interrogation_count))
     ww.print_knowledge()
 
 

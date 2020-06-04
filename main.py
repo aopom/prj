@@ -46,7 +46,7 @@ def explo_full_gopherpysat():
             (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
             ww.cautious_probe(i, j)
             print("cautious probe {} {}".format(i, j))
-        ww.print_knowledge()
+        # ww.print_knowledge()
 
 
 def fill_rules():
@@ -57,29 +57,29 @@ def fill_rules():
         [Variable(False, "S", 0, 0).pretty()],
         [Variable(False, "B", 0, 0).pretty()],
     ]"""
-    game_rules = []
-
     almeno_uno_wumpus = []
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             almeno_uno_wumpus.append(Variable(True, "W", i, j).pretty())
 
-    game_rules.append(almeno_uno_wumpus)
+    gs.push_pretty_clause(almeno_uno_wumpus)
 
     for i in range(WORLD_SIZE):
         for j in range(WORLD_SIZE):
             # One thing per tile
-            game_rules.append([Variable(False, "G", i, j).pretty(), Variable(False, "W", i, j).pretty()])
-            game_rules.append([Variable(False, "G", i, j).pretty(), Variable(False, "P", i, j).pretty()])
-            game_rules.append([Variable(False, "P", i, j).pretty(), Variable(False, "W", i, j).pretty()])
+            gs.push_pretty_clause([Variable(False, "G", i, j).pretty(), Variable(False, "W", i, j).pretty()])
+            gs.push_pretty_clause([Variable(False, "G", i, j).pretty(), Variable(False, "P", i, j).pretty()])
+            gs.push_pretty_clause([Variable(False, "P", i, j).pretty(), Variable(False, "W", i, j).pretty()])
 
             # One Wumpus per game
             # for i in range(WORLD_SIZE):
             # for j in range(WORLD_SIZE):
             for k in range(WORLD_SIZE):
                 for l in range(WORLD_SIZE):
-                    if i != k or j != l:
-                        game_rules.append([Variable(False, "W", i, j).pretty(), Variable(False, "W", k, l).pretty()])
+                    # if i != k or j != l:
+                    # 10% plus rapide xD à l'éxecution
+                    if i < k or j < l:
+                        gs.push_pretty_clause([Variable(False, "W", i, j).pretty(), Variable(False, "W", k, l).pretty()])
 
             # Pits around the Breeze
             # for i in range(WORLD_SIZE):
@@ -93,7 +93,7 @@ def fill_rules():
                 clause.append(Variable(True, "P", i + 1, j).pretty())
             if j < WORLD_SIZE - 1:
                 clause.append(Variable(True, "P", i, j + 1).pretty())
-            game_rules.append(clause)
+            gs.push_pretty_clause(clause)
 
             # Wumpus around the Strench
             # for i in range(WORLD_SIZE):
@@ -107,33 +107,33 @@ def fill_rules():
                 clause.append(Variable(True, "W", i + 1, j).pretty())
             if j < WORLD_SIZE - 1:
                 clause.append(Variable(True, "W", i, j + 1).pretty())
-            game_rules.append(clause)
+            gs.push_pretty_clause(clause)
 
             # un puit est entouré de environ 4 breeze sauf sur les bords
             # for i in range(WORLD_SIZE):
             # for j in range(WORLD_SIZE):
             clause = [Variable(False, "P", i, j).pretty()]
             if i > 0:
-                game_rules.append(clause + [Variable(True, "B", i - 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "B", i - 1, j).pretty()])
             if j > 0:
-                game_rules.append(clause + [Variable(True, "B", i, j - 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "B", i, j - 1).pretty()])
             if i < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(True, "B", i + 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "B", i + 1, j).pretty()])
             if j < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(True, "B", i, j + 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "B", i, j + 1).pretty()])
 
             # un wumpus est entouré de environ 4 strench sauf sur les bords
             # for i in range(WORLD_SIZE):
             # for j in range(WORLD_SIZE):
             clause = [Variable(False, "W", i, j).pretty()]
             if i > 0:
-                game_rules.append(clause + [Variable(True, "S", i - 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "S", i - 1, j).pretty()])
             if j > 0:
-                game_rules.append(clause + [Variable(True, "S", i, j - 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "S", i, j - 1).pretty()])
             if i < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(True, "S", i + 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "S", i + 1, j).pretty()])
             if j < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(True, "S", i, j + 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(True, "S", i, j + 1).pretty()])
 
             # pas d'odeur ni de puit donc pas de wumpus autour ( un puit cache une odeur pestidenntielle)
             # for i in range(WORLD_SIZE):
@@ -141,28 +141,28 @@ def fill_rules():
             clause = [Variable(True, "S", i, j).pretty()]
             # clause = [Variable(True, "S", i, j).pretty(), Variable(True, "P", i, j).pretty()]
             if i > 0:
-                game_rules.append(clause + [Variable(False, "W", i - 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "W", i - 1, j).pretty()])
             if j > 0:
-                game_rules.append(clause + [Variable(False, "W", i, j - 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "W", i, j - 1).pretty()])
             if i < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "W", i + 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "W", i + 1, j).pretty()])
             if j < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "W", i, j + 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "W", i, j + 1).pretty()])
 
             # pas de vent ni de wumpus donc pas de puit autour
             # for i in range(WORLD_SIZE):
             # for j in range(WORLD_SIZE):
             clause = [Variable(True, "B", i, j).pretty(), Variable(True, "W", i, j).pretty()]
             if i > 0:
-                game_rules.append(clause + [Variable(False, "P", i - 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "P", i - 1, j).pretty()])
             if j > 0:
-                game_rules.append(clause + [Variable(False, "P", i, j - 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "P", i, j - 1).pretty()])
             if i < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "P", i + 1, j).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "P", i + 1, j).pretty()])
             if j < WORLD_SIZE - 1:
-                game_rules.append(clause + [Variable(False, "P", i, j + 1).pretty()])
+                gs.push_pretty_clause(clause + [Variable(False, "P", i, j + 1).pretty()])
 
-    return game_rules
+    # return game_rules
 
 
 def knowledge_to_clauses():
@@ -203,16 +203,17 @@ def safe_tile(i, j):
 
 
 def safe_tile2(i, j):
-    # Are we sure there is a wumpus ?
-    no_wumpus = Variable(False, "W", i, j)
-    there_is_a_wumpus = 0 == interrogate([no_wumpus.pretty()])
-    if there_is_a_wumpus:
-        return -1
 
     # Are we sure there is a pit ?
     no_pit = Variable(False, "P", i, j)
     there_is_a_pit = 0 == interrogate([no_pit.pretty()])
     if there_is_a_pit:
+        return -1
+
+    # Are we sure there is a wumpus ?
+    no_wumpus = Variable(False, "W", i, j)
+    there_is_a_wumpus = 0 == interrogate([no_wumpus.pretty()])
+    if there_is_a_wumpus:
         return -1
 
     # Are we sure there is no wumpus ?
@@ -228,7 +229,7 @@ def safe_tile2(i, j):
 def explo_full_gopherpysat2():
     # première action
     ww.probe(0, 0)
-    unknown_tiles = [":troll_face:"]
+    unknown_tiles = [(i, j) for i in range(WORLD_SIZE) for j in range(WORLD_SIZE)]
     # While some tiles are unknown
     while len(unknown_tiles) > 0:
         # add new knowledge
@@ -237,43 +238,49 @@ def explo_full_gopherpysat2():
         # pick a tile
         knowledge = ww.get_knowledge()
         len_knowledge = len(knowledge)
-        unknown_tiles = [(i, j) for i in range(len_knowledge) for j in range(len_knowledge) if knowledge[i][j] == "?"]
-        safe_tiles = []
-        unsafe_tiles = []
+        unknown_tiles = [(i, j) for (i, j) in unknown_tiles if knowledge[i][j] == "?"]
+
+        action = False
         for (i, j) in unknown_tiles:
             safe = safe_tile2(i, j)
             if safe == 1:
-                safe_tiles.append((i, j))
-            elif safe == -1:
-                unsafe_tiles.append((i, j))
-
-        # probe
-        knew = False
-        if len(safe_tiles) > 0:
-            knew = True
-            for (i, j) in safe_tiles:
+                action = True
                 ww.probe(i, j)
                 print("ninja probe {} {}".format(i, j))
-        if len(unsafe_tiles) > 0:
-            knew = True
-            for (i, j) in unsafe_tiles:
+            elif safe == -1:
+                action = True
                 ww.cautious_probe(i, j)
                 print("sure cautious probe {} {}".format(i, j))
 
-        elif not knew and len(unknown_tiles) > 0:
+        # probe
+        # ninja = False
+        # if len(safe_tiles) > 0:
+        # ninja = True
+        # for (i, j) in safe_tiles:
+        # ww.probe(i, j)
+        # print("ninja probe {} {}".format(i, j))
+        #
+        # if len(unsafe_tiles) > 0:
+        # for (i, j) in unsafe_tiles:
+        # ww.cautious_probe(i, j)
+        # print("sure cautious probe {} {}".format(i, j))
+        #
+        # elif not ninja and len(unknown_tiles) > 0:
+        if not action and len(unknown_tiles) > 0:
             (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
             ww.cautious_probe(i, j)
             print("cautious probe {} {}".format(i, j))
         # ww.print_knowledge()
+        print()
 
 
 def mainloop():
     # Create world
     global ww
     # We provide a world length and a seed
-    ww = WumpusWorld(n=8, seed=21)
-    print(ww)
-    print("cost : {}".format(ww.get_cost()))
+    ww = WumpusWorld(n=10, seed=2)
+    # print(ww)
+    # print("cost : {}".format(ww.get_cost()))
 
     # World width
     global WORLD_SIZE
@@ -281,40 +288,25 @@ def mainloop():
 
     # Generate Vocabulary
     # Pit, Wumpus, Breeze, Stench, Gold
-    voc = [
-        Variable(True, letter, i, j).pretty()
-        for i in range(WORLD_SIZE)
-        for j in range(WORLD_SIZE)
-        for letter in ["P", "W", "B", "S", "G"]
-    ]
+    voc = [Variable(True, letter, i, j).pretty() for i in range(WORLD_SIZE) for j in range(WORLD_SIZE) for letter in ["P", "W", "B", "S", "G"]]
 
     # Create gophersat object
     global gs
     gs = Gophersat(voc=voc)
 
-    global game_rules
-    game_rules = fill_rules()
-    for clause in game_rules:
-        gs.push_pretty_clause(clause)
+    # global game_rules
+    # game_rules = fill_rules()
+    # for clause in game_rules:
+    #     gs.push_pretty_clause(clause)
+    fill_rules()
 
     global interrogation_count
     interrogation_count = 0
 
-    explo_full_gopherpysat()
+    explo_full_gopherpysat2()
     print("cost : {}".format(ww.get_cost()))
     print("interrogation_count : {}".format(interrogation_count))
     ww.print_knowledge()
-
-
-# # Finally add clauses
-# for i in range(len(clauses)):
-#     gs.push_pretty_clause(clauses[i])
-
-# # Solve...
-# print(gs.dimacs())
-# print(gs.solve())
-# print(gs.get_pretty_model())
-# print(gs.get_model())
 
 
 def test_gamerules():
@@ -330,12 +322,7 @@ def test_gamerules():
 
     # Generate Vocabulary
     # Pit, Wumpus, Breeze, Stench, Gold
-    voc = [
-        Variable(True, letter, i, j).pretty()
-        for i in range(WORLD_SIZE)
-        for j in range(WORLD_SIZE)
-        for letter in ["P", "W", "B", "S", "G"]
-    ]
+    voc = [Variable(True, letter, i, j).pretty() for i in range(WORLD_SIZE) for j in range(WORLD_SIZE) for letter in ["P", "W", "B", "S", "G"]]
 
     # Create gophersat object
     global gs

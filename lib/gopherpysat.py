@@ -3,7 +3,6 @@ import sys
 import subprocess
 import uuid
 import tempfile
-from . import variable
 from typing import List, Dict
 
 __author__ = "Sylvain Lagrue"
@@ -68,10 +67,6 @@ class Gophersat:
                 l.append((self.__voc_dict[lit] + 1))
 
         self.push_clause(l)
-
-    def push_variable_clause(self, clause: List[variable.Variable]):
-        pretty_clauses = [var.pretty() for var in clause]
-        self.push_pretty_clause(pretty_clauses)
 
     def push_clause(self, clause: List[int]):
         self.__clauses.append(clause)

@@ -39,6 +39,7 @@ class Engine:
             print(f"game_rules {self.game_rules}")
 
     def main(self):
+        # explo
         self.fill_rules()
         for clause in self.game_rules:
             for gs in self.gopherpysats:
@@ -49,7 +50,8 @@ class Engine:
         print("interrogation_count : {}".format(self.interrogation_count))
         self.ww.print_knowledge()
 
-        # for var in locals():
+        # gold
+        self.parcours()
 
     def beauty_print(self, double_array):
         print("[")
@@ -314,20 +316,23 @@ class Engine:
             print()
 
     def parcours(self):
+        self.ww.probe(0, 0)
         # liste des golds
         knowledge = self.ww.get_knowledge()
-        gold_list = [(i, j) for i in self.WORLD_SIZE for j in self.WORLD_SIZE if "G" in knowledge[i][j]]
+        gold_list = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) if "G" in knowledge[i][j]]
         # tant que liste des golds n'est pas vide
         while len(gold_list):
-            # rank par distance de manhattan
-            gold_list = sort(gold_list)
-            # A* avec distance de manhattan comme heuristique sur le 1er de la liste
+            # TODO rank par distance de manhattan
+            (i, j) = self.ww.get_position()
+            gold_list = sorted(gold_list, key=lambda x: -(abs(x[0] - i) + abs(x[1] - j)))
+            print(gold_list)
+            # TODO A* avec distance de manhattan comme heuristique sur le 1er de la liste
             goal = gold_list[-1]
-            # delete gold_list[-1]
-            # déplacement vers le gold
-            # suppression du gold de la liste
+            # TODO delete gold_list[-1]
+            # TODO déplacement vers le gold
+            # TODO suppression du gold de la liste
 
 
 if __name__ == "__main__":
-    e = Engine(n=12, seed=43, verbose=True)
+    e = Engine(n=8, seed=43, verbose=True)
     e.main()

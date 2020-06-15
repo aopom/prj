@@ -11,6 +11,8 @@ class Engine:
         self.verbose = verbose
         self.interrogation_count = 0
 
+        self.wumpus_found = (-1, -1)
+
         # WUMPUS WORLD
         self.ww = WumpusWorld(n=n, seed=seed)
         print(self.ww)
@@ -187,6 +189,8 @@ class Engine:
     #     pass
 
     def interrogate(self, gopherpysat, clause):
+        """Return False if clause is not compatible with gopherpysat's clauses.
+        """
         self.interrogation_count += 1
         gopherpysat.push_pretty_clause(clause)
         output = gopherpysat.solve()
@@ -194,13 +198,16 @@ class Engine:
         return output
 
     def safe_tile2(self, gopherpysat, i, j):
+        """Returns -1 if danger, 0 if dont know and 1 if safe
+        """
         # Are we sure there is a pit ?
         there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
         if there_is_a_pit:
             return -1
         # Are we sure there is a wumpus ?
-        there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
+        there_is_a_wumpus = not self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
         if there_is_a_wumpus:
+            print("################## WUMPUS FOUND ")
             return -1
         # Are we sure there is no wumpus ?
         there_is_no_wumpus = 0 == self.interrogate(gopherpysat, [f"W_{i}_{j}"])
@@ -209,6 +216,36 @@ class Engine:
         # Are we sure there is a pit ?
         there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
         return there_is_no_pit
+
+    def safe_tile3(self, gopherpysat, i, j):
+        """Returns -1 if danger, 0 if dont know and 1 if safe
+        """
+
+        # print(f"self.wumpus_found \t{self.wumpus_found}")
+        if self.wumpus_found[0] == -1:
+            # Are we sure there is a wumpus ?
+            there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
+            if there_is_a_wumpus:
+                print("############################33FOUND THE WUMPUS")
+                self.wumpus_found = (i, j)
+                return -1
+            # Are we sure there is a pit ?
+            there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
+            if there_is_a_pit:
+                return -1
+            # Are we sure there is no wumpus ?
+            there_is_no_wumpus = 0 == self.interrogate(gopherpysat, [f"W_{i}_{j}"])
+            if not there_is_no_wumpus:
+                return 0
+            # Are we sure there is a pit ?
+            there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
+            return there_is_no_pit
+        elif self.wumpus_found == (i, j):
+            return -1
+        else:
+            there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
+            there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
+            return there_is_no_pit - there_is_a_pit
 
     def adjacent_to_known_tile(self, knowledge, i, j):
         return (
@@ -228,7 +265,7 @@ class Engine:
             (i, j) = tiles[index]
             index += step
 
-            safe = self.safe_tile2(gopherpysat, i, j)
+            safe = self.safe_tile3(gopherpysat, i, j)
             if safe == 1:
                 self.action = True
                 self.ww.probe(i, j)
@@ -292,5 +329,5 @@ class Engine:
 
 
 if __name__ == "__main__":
-    e = Engine(n=5, verbose=True)
+    e = Engine(n=12, seed=43, verbose=True)
     e.main()

@@ -1,0 +1,16 @@
+n=10, seed=43
+safetile2: 
+real    0m34.337s
+user    0m39.339s
+sys     0m15.246s
+
+safetile3:
+real    0m25.211s
+user    0m29.568s
+sys     0m10.859s
+
+n=12, seed=43
+safetile2:
+real    2m1.023s
+user    2m15.715s
+sys     0m46.143s

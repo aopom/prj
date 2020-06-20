@@ -295,8 +295,7 @@ class Engine:
 
             # launch threads
             threads = []
-            global action
-            action = False
+            self.action = False
 
             for i in range(len(self.gopherpysats)):
                 thread = threading.Thread(target=self.try_multiple_tiles, args=(self.gopherpysats[i], peripheric_tiles, i, len(self.gopherpysats), knowledge))
@@ -308,7 +307,7 @@ class Engine:
                 thread.join()
 
             # if no tile was probed
-            if not action and len(unknown_tiles) > 0:
+            if not self.action and len(unknown_tiles) > 0:
                 (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
                 self.ww.cautious_probe(i, j)
                 print("cautious probe {} {}".format(i, j))
@@ -320,6 +319,7 @@ class Engine:
         # liste des golds
         knowledge = self.ww.get_knowledge()
         gold_list = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) if "G" in knowledge[i][j]]
+        parcours_list = [(0, 0)]
         # tant que liste des golds n'est pas vide
         while len(gold_list):
             # TODO rank par distance de manhattan
@@ -334,5 +334,5 @@ class Engine:
 
 
 if __name__ == "__main__":
-    e = Engine(n=8, seed=43, verbose=True)
+    e = Engine(n=20, seed=43, verbose=True)
     e.main()

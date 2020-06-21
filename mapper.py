@@ -1,11 +1,9 @@
-import random
-import threading
-import multiprocessing
+import random, threading, multiprocessing, queue
 from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
 
 
-class Mapper:
+class Engine:
     def __init__(self, n=10, seed=23, explore_type="optimised", verbose=0):
         # DEBUG
         self.verbose = verbose
@@ -50,7 +48,7 @@ class Mapper:
         print("interrogation_count : {}".format(self.interrogation_count))
         self.ww.print_knowledge()
         # gold
-        # self.parcours()
+        self.parcours()
 
     def beauty_print(self, double_array):
         print("[")
@@ -190,7 +188,7 @@ class Mapper:
             # Are we sure there is a wumpus ?
             there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
             if there_is_a_wumpus:
-                print("############################33FOUND THE WUMPUS")
+                print("############################ FOUND THE WUMPUS")
                 self.wumpus_found = (i, j)
                 return -1
             # Are we sure there is a pit ?
@@ -230,11 +228,11 @@ class Mapper:
             if safe == 1:
                 self.action = True
                 self.ww.probe(i, j)
-                print(f"ninja probe {i} {j}")
+                # print(f"ninja probe {i} {j}")
             elif safe == -1:
                 self.action = True
                 self.ww.cautious_probe(i, j)
-                print(f"sure cautious probe {i} {j}")
+                # print(f"sure cautious probe {i} {j}")
 
     def explo_full_gopherpysat2(self):
         # première action
@@ -264,33 +262,62 @@ class Mapper:
                 (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
                 # (i, j) = unknown_tiles[0]
                 self.ww.cautious_probe(i, j)
-                print("cautious probe {} {}".format(i, j))
+                # print("cautious probe {} {}".format(i, j))
             # self.ww.print_knowledge()
-            print()
+            # print()
 
     def parcours(self):
         self.ww.probe(0, 0)
         # liste des golds
-        accessible_tab, gold_list = BFS_prepa_parcours()
+        print("bfs")
+        self.BFS_prepa_parcours()
+        self.beauty_print(self.reachable_tiles)
+        print(self.reachable_golds)
+        return
         knowledge = self.ww.get_knowledge()
         gold_list = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) if "G" in knowledge[i][j]]
         parcours_list = [(0, 0)]
-        # tant que liste des golds n'est pas vide
-        while len(gold_list):
-            # TODO rank par distance de manhattan
-            (i, j) = self.ww.get_position()
-            gold_list = sorted(gold_list, key=lambda x: -(abs(x[0] - i) + abs(x[1] - j)))
-            print(gold_list)
-            # TODO A* avec distance de manhattan comme heuristique sur le 1er de la liste
-            goal = gold_list[-1]
-            # TODO delete gold_list[-1]
-            # TODO déplacement vers le gold
-            # TODO suppression du gold de la liste
+        if len(gold_list):
+            # tant que liste des golds n'est pas vide
+            while len(gold_list):
+                # TODO rank par distance de manhattan
+                (i, j) = self.ww.get_position()
+                gold_list = sorted(gold_list, key=lambda x: -(abs(x[0] - i) + abs(x[1] - j)))
+                print(gold_list)
+                # TODO A* avec distance de manhattan comme heuristique sur le 1er de la liste
+                goal = gold_list[-1]
+                # TODO delete gold_list[-1]
+                # TODO déplacement vers le gold
+                # TODO suppression du gold de la liste
 
     def BFS_prepa_parcours(self):
-        return [[]], []
+        knowledge = self.ww.get_knowledge()
+        q = queue.Queue()
+        q.put((0, 0))
+        already_seen = [[False for i in range(self.WORLD_SIZE)] for j in range(self.WORLD_SIZE)]
+        self.reachable_tiles = [[False for i in range(self.WORLD_SIZE)] for j in range(self.WORLD_SIZE)]
+        self.reachable_golds = []
+        while not q.empty():
+            (current_i, current_j) = q.get()
+            self.reachable_tiles[current_i][current_j] = True
+            for (di, dj) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                i = current_i + di
+                j = current_j + dj
+                if (
+                    i >= 0
+                    and i < self.WORLD_SIZE
+                    and j >= 0
+                    and j < self.WORLD_SIZE
+                    and already_seen[i][j] == False
+                    and not "W" in knowledge[i][j]
+                    and not "P" in knowledge[i][j]
+                ):
+                    q.put((i, j))
+                    already_seen[i][j] = True
+                    if "G" in knowledge[i][j]:
+                        self.reachable_golds.append((i, j))
 
 
 if __name__ == "__main__":
-    e = Mapper(n=10, seed=5, verbose=True)
+    e = Engine(n=10, seed=8, verbose=True)
     e.main()

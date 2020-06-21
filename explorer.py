@@ -43,12 +43,30 @@ class Explorer():
         self.WORLD_SIZE = n
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE)
 
+    def closest_heuristic(self, origin, destinations ):
+        if destinations:
+            distance = self.WORLD_SIZE
+            closest = None
+            for destination in destinations:
+                if self.manhattan(origin, destination) < distance:
+                    closest = destination
+            return closest
+        else :
+            return None
 
-    def heuristic(self, a, b):
+    # def closest_spiral(self, origin):
+    #     for i in range(self.WORLD_SIZE):
+    #         if 
+
+    def manhattan(self, a, b):
         (x1, y1) = a
         (x2, y2) = b
         return abs(x1 - x2) + abs(y1 - y2)
 
+    def grid_generator(self, knowledge):
+        for i in range(self.WORLD_SIZE):
+            for j in range(self.WORLD_SIZE):
+                pass
     def run(self):
         # my_mapper = Mapper(n=7, seed=5, verbose=True)
         # my_mapper.main()
@@ -59,6 +77,8 @@ class Explorer():
 
         path = self.a_star_search(start , end)
         print(path)
+
+    
         
     def a_star_search(self, start, goal):
         frontier = PriorityQueue()
@@ -78,7 +98,7 @@ class Explorer():
                 new_cost = cost_so_far[current] + 1
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
-                    priority = new_cost + self.heuristic(goal, next)
+                    priority = new_cost + self.manhattan(goal, next)
                     frontier.put(next, priority)
                     came_from[next] = current
         

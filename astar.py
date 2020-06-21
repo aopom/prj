@@ -1,112 +1,84 @@
+import heapq
 
-class Node():
-    """A node class for A* Pathfinding"""
+class SquareGrid:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.walls = []
+    
+    def in_bounds(self, id):
+        (x, y) = id
+        return 0 <= x < self.width and 0 <= y < self.height
+         
+    def passable(self, id):
+        return id not in self.walls
+    
+    def neighbors(self, id):
+        (x, y) = id
+        results = [(x+1, y), (x, y-1), (x-1, y), (x, y+1)]
+        if (x + y) % 2 == 0: results.reverse() # aesthetics
+        results = filter(self.in_bounds, results)
+        results = filter(self.passable, results)
+        return results
 
-    def __init__(self, parent=None, position=None):
-        self.parent = parent
-        self.position = position
+    
 
-        self.g = 0
-        self.h = 0
-        self.f = 0
+class PriorityQueue:
+    def __init__(self):
+        self.elements = []
+    
+    def empty(self):
+        return len(self.elements) == 0
+    
+    def put(self, item, priority):
+        heapq.heappush(self.elements, (priority, item))
+    
+    def get(self):
+        return heapq.heappop(self.elements)[1]
 
-    def __eq__(self, other):
-        return self.position == other.position
+def heuristic(a, b):
+    (x1, y1) = a
+    (x2, y2) = b
+    return abs(x1 - x2) + abs(y1 - y2)
 
-
-def astar(maze, start, end):
-    """Returns a list of tuples as a path from the given start to the given end in the given maze"""
-
-    # Create start and end node
-    start_node = Node(None, start)
-    start_node.g = start_node.h = start_node.f = 0
-    end_node = Node(None, end)
-    end_node.g = end_node.h = end_node.f = 0
-
-    # Initialize both open and closed list
-    open_list = []
-    closed_list = []
-
-    # Add the start node
-    open_list.append(start_node)
-
-    # Loop until you find the end
-    while len(open_list) > 0:
-
-        # Get the current node
-        current_node = open_list[0]
-        current_index = 0
-        for index, item in enumerate(open_list):
-            if item.f < current_node.f:
-                current_node = item
-                current_index = index
-
-        # Pop current off open list, add to closed list
-        open_list.pop(current_index)
-        closed_list.append(current_node)
-
-        # Found the goal
-        if current_node == end_node:
-            path = []
-            current = current_node
-            while current is not None:
-                path.append(current.position)
-                current = current.parent
-            return path[::-1] # Return reversed path
-
-        # Generate children
-        children = []
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
-
-            # Get node position
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
-
-            # Make sure within range
-            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
-                continue
-
-            # Make sure walkable terrain
-            if maze[node_position[0]][node_position[1]] != 1:
-                continue
-
-            # Create new node
-            new_node = Node(current_node, node_position)
-
-            # Append
-            children.append(new_node)
-
-        # Loop through children
-        for child in children:
-
-            # Child is on the closed list
-            for closed_child in closed_list:
-                if child == closed_child:
-                    continue
-
-            # Create the f, g, and h values
-            child.g = current_node.g + 1
-            child.h = abs(child.position[0] - end_node.position[0]) + abs(child.position[1] - end_node.position[1]) # HEURISTIQUE
-            child.f = child.g + child.h
-
-            # Child is already in the open list
-            for open_node in open_list:
-                if child == open_node and child.g > open_node.g:
-                    continue
-
-            # Add the child to the open list
-            open_list.append(child)
+def a_star_search(graph, start, goal):
+    frontier = PriorityQueue()
+    frontier.put(start, 0)
+    came_from = {}
+    cost_so_far = {}
+    came_from[start] = None
+    cost_so_far[start] = 0
+    
+    while not frontier.empty():
+        current = frontier.get()
+        
+        if current == goal:
+            break
+        
+        for next in graph.neighbors(current):
+            new_cost = cost_so_far[current] + 1
+            if next not in cost_so_far or new_cost < cost_so_far[next]:
+                cost_so_far[next] = new_cost
+                priority = new_cost + heuristic(goal, next)
+                frontier.put(next, priority)
+                came_from[next] = current
+    
+    # return came_from, cost_so_far
+    path = []
+    path.append(goal)
+    while (came_from[path[-1]] != None):
+        path.append(came_from[path[-1]])
+    return path[::-1]
 
 
-def main():
 
-    maze = [[True for i in range(100)] for j in range(100)]
 
-    start = (0, 0)
-    end = (98, 98)
+if __name__ == "__main__":
+    n = 300
+    maze = [[False for i in range(n)]for j in range(n)]
+    gr = SquareGrid(n,n)
+    start = (0,0)
+    end = (n-1, n-1)
 
-    path = astar(maze, start, end)
+    path = a_star_search(gr, start , end)
     print(path)
-
-
-if __name__ == '__main__':
-    main()

@@ -271,15 +271,15 @@ class WumpusWorld:
 def test():
     ww = WumpusWorld()
 
-    print(ww.get_percepts())
-    print(ww.go_to(0, 1))
-    print(ww.get_percepts())
-    print(ww.get_position())
+    # print(ww.get_percepts())
+    # print(ww.go_to(0, 1))
+    # print(ww.get_percepts())
+    # print(ww.get_position())
 
     print(ww.probe(0, 1))
     print(ww.probe(0, 2))
     print(ww.cautious_probe(0, 2))
-    print(ww.go_to(0, 2))
+    # print(ww.go_to(0, 2))
 
     print(ww)
 

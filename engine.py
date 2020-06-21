@@ -262,6 +262,7 @@ class Engine:
             # if no tile was probed
             if not self.action and len(unknown_tiles) > 0:
                 (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
+                # (i, j) = unknown_tiles[0]
                 self.ww.cautious_probe(i, j)
                 print("cautious probe {} {}".format(i, j))
             # self.ww.print_knowledge()
@@ -270,6 +271,7 @@ class Engine:
     def parcours(self):
         self.ww.probe(0, 0)
         # liste des golds
+        accessible_tab, gold_list = BFS_prepa_parcours()
         knowledge = self.ww.get_knowledge()
         gold_list = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) if "G" in knowledge[i][j]]
         parcours_list = [(0, 0)]
@@ -285,7 +287,10 @@ class Engine:
             # TODO déplacement vers le gold
             # TODO suppression du gold de la liste
 
+    def BFS_prepa_parcours(self):
+        return [[]], []
+
 
 if __name__ == "__main__":
-    e = Engine(n=20, seed=43, verbose=True)
+    e = Engine(n=10, seed=5, verbose=True)
     e.main()

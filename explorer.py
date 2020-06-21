@@ -1,4 +1,5 @@
 import heapq
+from mapper import Mapper
 
 class SquareGrid:
     def __init__(self, width, height):
@@ -20,8 +21,6 @@ class SquareGrid:
         results = filter(self.in_bounds, results)
         results = filter(self.passable, results)
         return results
-
-    
 
 class PriorityQueue:
     def __init__(self):
@@ -70,15 +69,25 @@ def a_star_search(graph, start, goal):
         path.append(came_from[path[-1]])
     return path[::-1]
 
+class Explorer():
+    def __init__(self):
+        pass
+    def run(self):
+        my_mapper = Mapper(n=7, seed=5, verbose=True)
+        my_mapper.main()
+
 
 
 
 if __name__ == "__main__":
-    n = 300
-    maze = [[False for i in range(n)]for j in range(n)]
-    gr = SquareGrid(n,n)
-    start = (0,0)
-    end = (n-1, n-1)
+    # n = 300
+    # maze = [[False for i in range(n)]for j in range(n)]
+    # gr = SquareGrid(n,n)
+    # start = (0,0)
+    # end = (n-1, n-1)
 
-    path = a_star_search(gr, start , end)
-    print(path)
+    # path = a_star_search(gr, start , end)
+    # print(path)
+
+    e = Explorer()
+    e.run()

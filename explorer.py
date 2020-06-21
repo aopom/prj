@@ -52,10 +52,12 @@ class Explorer:
 
     def closest_heuristic(self, origin, destinations):
         if destinations:
-            distance = self.WORLD_SIZE
+            distance = self.WORLD_SIZE * self.WORLD_SIZE + 1
             closest = None
             for destination in destinations:
-                if self.manhattan(origin, destination) < distance:
+                new_distance = self.manhattan(origin, destination)
+                if new_distance < distance:
+                    distance = new_distance
                     closest = destination
             return closest
         else:
@@ -70,12 +72,7 @@ class Explorer:
         (x2, y2) = b
         return abs(x1 - x2) + abs(y1 - y2)
 
-    def grid_generator(self, knowledge):
-        for i in range(self.WORLD_SIZE):
-            for j in range(self.WORLD_SIZE):
-                pass
-
-    def run(self):
+    def test_astar(self):
         self.my_mapper.main()
 
         self.reachable_tiles_and_golds()
@@ -86,6 +83,38 @@ class Explorer:
 
         path = self.a_star_search(start, end)
         print(path)
+
+    def run(self):
+        self.my_mapper.main()
+
+        self.reachable_tiles_and_golds()
+        self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
+
+        self.salesman_sort()
+
+        for i in range(len(self.reachable_golds) - 1):
+            start = self.reachable_golds[i]
+            goal = self.reachable_golds[i + 1]
+            path = self.a_star_search(start, goal)
+            print(path)
+
+    def salesman_sort(self):
+        # first loop
+        start = (0, 0)
+        sorted_golds = [start]
+        print("golds:", self.reachable_golds)
+        while self.reachable_golds:
+            start = self.closest_heuristic(start, self.reachable_golds)
+            sorted_golds.append(start)
+            print("start", start)
+            self.reachable_golds.remove(start)
+        sorted_golds.append((0, 0))
+        self.reachable_golds = sorted_golds
+        print(self.reachable_golds)
+        # decrossin'
+
+    def crossed(self, tuple1, tuple2):
+        pass
 
     def a_star_search(self, start, goal):
         frontier = PriorityQueue()
@@ -158,5 +187,5 @@ if __name__ == "__main__":
     # path = a_star_search(gr, start , end)
     # print(path)
 
-    e = Explorer(n=6, seed=42 + (True + True) * True)
+    e = Explorer(n=10, seed=42 * 1001)
     e.run()

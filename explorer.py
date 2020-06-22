@@ -2,7 +2,10 @@
 
 import heapq, queue
 from mapper import Mapper
+from typing import Dict, Tuple, Sequence, Set
 
+Point = Tuple[int, int]
+Segment = Tuple[Point, Point]
 
 class SquareGrid:
     def __init__(self, width, height, walls=[]):
@@ -116,8 +119,59 @@ class Explorer:
         print(self.reachable_golds)
         # decrossin'
 
-    def crossed(self, tuple1, tuple2):
-        pass
+    def which_side(self, segment : Segment, point: Point):
+        """ Return -1 si en dessous / gouche
+            Return 0 si point sur la droite (a,b)
+            Return 1 sinon (dessus/froite)
+        """
+        ((ax, ay), (bx, by)) = segment
+        (cx, cy) = point
+
+
+        if (ax == bx): # vertical
+            if (ax < cx): return -1
+            elif (ax > cx): return 1
+            elif (ax == cx): return 0
+        else: #not vertical
+            for i in [ax, ay, bx, by, cx, cy]:
+                i = float(i)
+
+            # Droite portant le segment 
+            coef_dir = ((by-ay)/(bx-ax))
+            b_shift =  ay - coef_dir * ax
+
+            print("coef_dir", coef_dir)
+            print("b_shift", b_shift)
+
+            # point (mx, my) sur la droite de coord x meme que point
+            mx=cx
+            my=coef_dir * mx + b_shift 
+
+
+            if (my < cy): return -1
+            elif (my > cy): return 1
+            elif (my == cy): return 0
+
+        #Si ab non vertical:
+        #   faut trouver un point (mi, mj) app a droite (ab) tel que mj=pointj
+        #   Si mi < a pointi return -1
+        #   Si mi > a pointi return 1
+        #   Si mi == a pointi return 0
+        #Si ab vertical:
+        #   faut trouver un point (mi, mj) app a droite (ab) tel que mi=pointi
+        #   Si mj < a pointj return -1
+        #   Si mj > a pointj return 1
+        #   Si mj == a pointj return 0
+        
+
+    def crossed(self, ab: Segment, cd: Segment)-> bool : 
+        (a,b) = ab
+        (c, d) = cd
+
+        if (self.which_side(ab, c) !=0 and self.which_side(ab, c) == -self.which_side(ab, d)):
+            if ( self.which_side(cd, a) !=0 and self.which_side(cd, a) == -self.which_side(cd, b)):
+                return True
+        return False
 
     def a_star_search(self, start, goal):
         frontier = PriorityQueue()
@@ -190,5 +244,19 @@ if __name__ == "__main__":
     # path = a_star_search(gr, start , end)
     # print(path)
 
+    a = (0,5)
+    b = (0, 10)
+
+    c0 = (0, 0)
+    c1 = (7, 200)
+    c2 = (15, 4)
+    c3 = (-290, 4)
+
+    ab = (a, b)
     e = Explorer(n=10, seed=42 * 1001)
-    e.run()
+    
+    print(e.which_side(ab, c0))
+    print(e.which_side(ab, c1))
+    print(e.which_side(ab, c2))
+    print(e.which_side(ab, c3))
+    # e.run()

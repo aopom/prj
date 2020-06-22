@@ -1,3 +1,4 @@
+#!/bin/bash
 mkdir -p times
 for i in $(seq 2 20)
 do

@@ -208,8 +208,10 @@ class Mapper:
             return -1
         else:
             there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
+            if there_is_no_pit:
+                return 1
             there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
-            return there_is_no_pit - there_is_a_pit
+            return -there_is_a_pit
 
     def neighbours(self, i, j):
         neighbours_tiles = set()
@@ -301,6 +303,7 @@ class Mapper:
             self.new_kno = []
 
             to_map_next.clear()
+            
             for (i, j) in self.newly_mapped_tiles:
                 to_map_next |= self.neighbours(i, j) & self.not_mapped_tiles
 

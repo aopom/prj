@@ -9,6 +9,7 @@ class Mapper:
         self.verbose = verbose
         self.interrogation_count = 0
 
+
         self.wumpus_position = (-1, -1)
         self.wumpus_found = False
 
@@ -36,8 +37,9 @@ class Mapper:
         self.game_rules = []
 
         # sets
-        self.explored_tiles = set()
-        self.last_explored_tiles = set()
+        self.mapped_tiles = set()
+        self.not_mapped_tiles = set((i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) )
+        self.last_mapped_tiles = set()
 
         if verbose:
             print(f"game_rules {self.game_rules}")
@@ -49,7 +51,7 @@ class Mapper:
             for gs in self.gopherpysats:
                 gs.push_pretty_clause(clause)
 
-        self.explo_full_gopherpysat2()
+        self.mapper_loop()
         print("cost : {}".format(self.ww.get_cost()))
         print("interrogation_count : {}".format(self.interrogation_count))
         self.ww.print_knowledge()
@@ -164,27 +166,7 @@ class Mapper:
         gopherpysat.pop_clause()
         return output
 
-    def safe_tile2(self, gopherpysat, i, j):
-        """Returns -1 if danger, 0 if dont know and 1 if safe
-        """
-        # Are we sure there is a pit ?
-        there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
-        if there_is_a_pit:
-            return -1
-        # Are we sure there is a wumpus ?
-        there_is_a_wumpus = not self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
-        if there_is_a_wumpus:
-            print("################## WUMPUS FOUND ")
-            return -1
-        # Are we sure there is no wumpus ?
-        there_is_no_wumpus = 0 == self.interrogate(gopherpysat, [f"W_{i}_{j}"])
-        if not there_is_no_wumpus:
-            return 0
-        # Are we sure there is a pit ?
-        there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
-        return there_is_no_pit
-
-    def safe_tile3(self, gopherpysat, i, j):
+    def guess_if_safe(self, gopherpysat, i, j):
         """Returns -1 if danger, 0 if dont know and 1 if safe
         """
         # print(f"self.wumpus_position \t{self.wumpus_position}")
@@ -192,7 +174,7 @@ class Mapper:
             # Are we sure there is a wumpus ?
             there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
             if there_is_a_wumpus:
-                print("############################ DéDUCTED THE WUMPUS")
+                print("############################ DéDUCTED THE WUMPUS (guess_if_safe)")
                 self.wumpus_position = (i, j)
                 self.wumpus_found = True
                 return -1
@@ -213,8 +195,17 @@ class Mapper:
             there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
             there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
             return there_is_no_pit - there_is_a_pit
+    
+    def neighbours(self, i, j):
+        neighbours_tiles = set()
+        if i > 0 : neighbours_tiles.add((i-1, j))
+        if j > 0 : neighbours_tiles.add((i, j-1))
+        if i < self.WORLD_SIZE : neighbours_tiles.add((i+1, j))
+        if j < self.WORLD_SIZE : neighbours_tiles.add((i, j+1))
+        return neighbours_tiles
 
     def adjacent_to_known_tile(self, knowledge, i, j):
+        """ faut pas s' en servir """
         return (
             (i > 0 and knowledge[i - 1][j] != "?")
             or (j > 0 and knowledge[i][j - 1] != "?")
@@ -224,15 +215,18 @@ class Mapper:
 
     def after_probe(self, i, j):
         self.action = True
-        self.explored_tiles.add((i, j))
-        self.last_explored_tiles.add((i, j))
+
+        # sets mangement
+        self.mapped_tiles.add((i, j))
+        self.last_mapped_tiles.add((i, j))
+        self.not_mapped_tiles.discard((i, j))
+
         if not self.wumpus_found:
             a, b, percepts = self.ww.get_percepts()
-            print("percepts", percepts)
             if "W" in percepts:
                 self.wumpus_position = (i, j)
                 self.wumpus_found = True
-                print("############################ found the wumpus")
+                print("############################ found the wumpus (after probe)")
 
     def probe(self, i, j):
         self.ww.probe(i, j)
@@ -249,20 +243,71 @@ class Mapper:
         self.after_probe(i, j)
         print("cautious probe {} {}".format(i, j))
 
-    def try_multiple_tiles(self, gopherpysat, tiles, start, step, knowledge):
+    def thread_guess_and_probe(self, gopherpysat, tiles, start, step, knowledge):
         for clause in knowledge:
             gopherpysat.push_pretty_clause(clause)
         index = start
         while index < len(tiles):
             (i, j) = tiles[index]
             index += step
-            safe = self.safe_tile3(gopherpysat, i, j)
+            safe = self.guess_if_safe(gopherpysat, i, j)
             if safe == 1:
                 self.probe(i, j)
             elif safe == -1:
                 self.sure_cautious_probe(i, j)
 
-    def explo_full_gopherpysat2(self):
+    def mapper_loop(self):
+        """ main loop pour explorer tout 
+        """
+        # première action
+        self.probe(0, 0)
+        # on a 0,0 dans mapped_tiles
+        to_map_next = set()
+             
+        # While some tiles are unknown
+        while self.not_mapped_tiles:
+
+            # print("pre")
+            # print("to_map_next ", to_map_next)
+            # print("last_mapped_tiles ", self.last_mapped_tiles)
+            # print("not_mapped_tiles ", self.not_mapped_tiles)
+            # print("mapped_tiles ", self.mapped_tiles)
+            
+
+            to_map_next.clear()
+            for (i, j) in self.last_mapped_tiles:
+                to_map_next |= ( self.neighbours(i, j) & self.not_mapped_tiles) 
+
+            tile_playlist = list(to_map_next)
+            self.last_mapped_tiles.clear()
+
+            # print("\tto_map_next ", to_map_next)
+            # print("\tlast_mapped_tiles ", self.last_mapped_tiles)
+            # print("\tnot_mapped_tiles ", self.not_mapped_tiles)
+            # print("\tmapped_tiles ", self.mapped_tiles)
+            
+            
+            knowledge = self.knowledge_to_clauses()
+            # launch threads
+            threads = []
+            self.action = False
+            for i in range(len(self.gopherpysats)):
+                thread = threading.Thread(target=self.thread_guess_and_probe, args=(self.gopherpysats[i], tile_playlist, i, len(self.gopherpysats), knowledge))
+                threads.append(thread)
+                thread.start()
+            # wait for threads
+            for thread in threads:
+                thread.join()
+            # if no tile was probed
+            if not self.action and self.not_mapped_tiles:
+                (i, j) = next(iter(self.not_mapped_tiles))
+                self.cautious_probe(i, j)
+
+
+
+    def mapper_loop_bkp(self):
+        """ main loop pour explorer tout 
+        """
         # première action
         self.probe(0, 0)
         unknown_tiles = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE)]
@@ -279,7 +324,7 @@ class Mapper:
             threads = []
             self.action = False
             for i in range(len(self.gopherpysats)):
-                thread = threading.Thread(target=self.try_multiple_tiles, args=(self.gopherpysats[i], peripheric_tiles, i, len(self.gopherpysats), knowledge))
+                thread = threading.Thread(target=self.thread_guess_and_probe, args=(self.gopherpysats[i], peripheric_tiles, i, len(self.gopherpysats), knowledge))
                 threads.append(thread)
                 thread.start()
             # wait for threads
@@ -294,6 +339,7 @@ class Mapper:
             # print()
 
 
+
 if __name__ == "__main__":
-    e = Mapper(n=6, seed=50, verbose=True)
+    e = Mapper(n=15, seed=50, verbose=True)
     e.main()

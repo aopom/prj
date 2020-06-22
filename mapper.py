@@ -1,6 +1,7 @@
 import random, threading, multiprocessing
 from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
+import timeit
 
 
 class Mapper:
@@ -9,6 +10,11 @@ class Mapper:
         self.verbose = verbose
         self.interrogation_count = 0
 
+        # self.precedent_iteration_knowledge = []
+        self.precedent_iter_kno = []
+
+        self.new_kno = []
+        self.new_kno_lock = threading.Lock()
 
         self.wumpus_position = (-1, -1)
         self.wumpus_found = False
@@ -22,7 +28,12 @@ class Mapper:
         self.WORLD_SIZE = self.ww.get_n()
 
         # VOC
-        self.voc = [f"{letter}_{i}_{j}" for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) for letter in ["P", "W", "B", "S", "G"]]
+        self.voc = [
+            f"{letter}_{i}_{j}"
+            for i in range(self.WORLD_SIZE)
+            for j in range(self.WORLD_SIZE)
+            for letter in ["P", "W", "B", "S", "G"]
+        ]
 
         # THREADING RELATED MATERIAL
         self.cpus = multiprocessing.cpu_count()
@@ -38,8 +49,10 @@ class Mapper:
 
         # sets
         self.mapped_tiles = set()
-        self.not_mapped_tiles = set((i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) )
-        self.last_mapped_tiles = set()
+        self.not_mapped_tiles = set(
+            (i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE)
+        )
+        self.newly_mapped_tiles = set()
 
         if verbose:
             print(f"game_rules {self.game_rules}")
@@ -174,7 +187,9 @@ class Mapper:
             # Are we sure there is a wumpus ?
             there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
             if there_is_a_wumpus:
-                print("############################ DéDUCTED THE WUMPUS (guess_if_safe)")
+                print(
+                    "############################ DéDUCTED THE WUMPUS (guess_if_safe)"
+                )
                 self.wumpus_position = (i, j)
                 self.wumpus_found = True
                 return -1
@@ -195,13 +210,17 @@ class Mapper:
             there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
             there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
             return there_is_no_pit - there_is_a_pit
-    
+
     def neighbours(self, i, j):
         neighbours_tiles = set()
-        if i > 0 : neighbours_tiles.add((i-1, j))
-        if j > 0 : neighbours_tiles.add((i, j-1))
-        if i < self.WORLD_SIZE : neighbours_tiles.add((i+1, j))
-        if j < self.WORLD_SIZE : neighbours_tiles.add((i, j+1))
+        if i > 0:
+            neighbours_tiles.add((i - 1, j))
+        if j > 0:
+            neighbours_tiles.add((i, j - 1))
+        if i < self.WORLD_SIZE:
+            neighbours_tiles.add((i + 1, j))
+        if j < self.WORLD_SIZE:
+            neighbours_tiles.add((i, j + 1))
         return neighbours_tiles
 
     def adjacent_to_known_tile(self, knowledge, i, j):
@@ -218,11 +237,19 @@ class Mapper:
 
         # sets mangement
         self.mapped_tiles.add((i, j))
-        self.last_mapped_tiles.add((i, j))
+        self.newly_mapped_tiles.add((i, j))
         self.not_mapped_tiles.discard((i, j))
 
+        a, b, percepts = self.ww.get_percepts()
+        for letter in "PWBSG":
+            if letter in percepts:
+                with self.new_kno_lock:
+                    self.new_kno.append([f"{letter}_{i}_{j}"])
+            else:
+                with self.new_kno_lock:
+                    self.new_kno.append([f"-{letter}_{i}_{j}"])
+
         if not self.wumpus_found:
-            a, b, percepts = self.ww.get_percepts()
             if "W" in percepts:
                 self.wumpus_position = (i, j)
                 self.wumpus_found = True
@@ -243,13 +270,16 @@ class Mapper:
         self.after_probe(i, j)
         print("cautious probe {} {}".format(i, j))
 
-    def thread_guess_and_probe(self, gopherpysat, tiles, start, step, knowledge):
-        for clause in knowledge:
+    def thread_guess_and_probe(self, gopherpysat, tiles, start):
+        # print("Push...",start)
+        for clause in self.precedent_iter_kno:
             gopherpysat.push_pretty_clause(clause)
+        # print("\t... clauses", start)
+
         index = start
         while index < len(tiles):
             (i, j) = tiles[index]
-            index += step
+            index += self.cpus
             safe = self.guess_if_safe(gopherpysat, i, j)
             if safe == 1:
                 self.probe(i, j)
@@ -263,36 +293,29 @@ class Mapper:
         self.probe(0, 0)
         # on a 0,0 dans mapped_tiles
         to_map_next = set()
-             
+
         # While some tiles are unknown
         while self.not_mapped_tiles:
 
-            # print("pre")
-            # print("to_map_next ", to_map_next)
-            # print("last_mapped_tiles ", self.last_mapped_tiles)
-            # print("not_mapped_tiles ", self.not_mapped_tiles)
-            # print("mapped_tiles ", self.mapped_tiles)
-            
+            self.precedent_iter_kno = self.new_kno
+            self.new_kno = []
 
             to_map_next.clear()
-            for (i, j) in self.last_mapped_tiles:
-                to_map_next |= ( self.neighbours(i, j) & self.not_mapped_tiles) 
+            for (i, j) in self.newly_mapped_tiles:
+                to_map_next |= self.neighbours(i, j) & self.not_mapped_tiles
 
             tile_playlist = list(to_map_next)
-            self.last_mapped_tiles.clear()
 
-            # print("\tto_map_next ", to_map_next)
-            # print("\tlast_mapped_tiles ", self.last_mapped_tiles)
-            # print("\tnot_mapped_tiles ", self.not_mapped_tiles)
-            # print("\tmapped_tiles ", self.mapped_tiles)
-            
-            
-            knowledge = self.knowledge_to_clauses()
+            self.newly_mapped_tiles.clear()
+
             # launch threads
             threads = []
             self.action = False
-            for i in range(len(self.gopherpysats)):
-                thread = threading.Thread(target=self.thread_guess_and_probe, args=(self.gopherpysats[i], tile_playlist, i, len(self.gopherpysats), knowledge))
+            for i in range(self.cpus):
+                thread = threading.Thread(
+                    target=self.thread_guess_and_probe,
+                    args=(self.gopherpysats[i], tile_playlist, i),
+                )
                 threads.append(thread)
                 thread.start()
             # wait for threads
@@ -304,42 +327,6 @@ class Mapper:
                 self.cautious_probe(i, j)
 
 
-
-    def mapper_loop_bkp(self):
-        """ main loop pour explorer tout 
-        """
-        # première action
-        self.probe(0, 0)
-        unknown_tiles = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE)]
-        # While some tiles are unknown
-        while len(unknown_tiles) > 0:
-            # select all unknown tiles
-            knowledge = self.ww.get_knowledge()
-            unknown_tiles = [(i, j) for (i, j) in unknown_tiles if knowledge[i][j] == "?"]
-            # choose only tiles worth trying
-            peripheric_tiles = [(i, j) for (i, j) in unknown_tiles if self.adjacent_to_known_tile(knowledge, i, j)]
-            # prepare knowledge to be added to each gopherpysat
-            knowledge = self.knowledge_to_clauses()
-            # launch threads
-            threads = []
-            self.action = False
-            for i in range(len(self.gopherpysats)):
-                thread = threading.Thread(target=self.thread_guess_and_probe, args=(self.gopherpysats[i], peripheric_tiles, i, len(self.gopherpysats), knowledge))
-                threads.append(thread)
-                thread.start()
-            # wait for threads
-            for thread in threads:
-                thread.join()
-            # if no tile was probed
-            if not self.action and len(unknown_tiles) > 0:
-                (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
-                # (i, j) = unknown_tiles[0]
-                self.cautious_probe(i, j)
-            # self.ww.print_knowledge()
-            # print()
-
-
-
 if __name__ == "__main__":
-    e = Mapper(n=15, seed=50, verbose=True)
+    e = Mapper(n=20, seed=50, verbose=True)
     e.main()

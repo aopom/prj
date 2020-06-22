@@ -150,8 +150,12 @@ class Explorer:
         knowledge = self.my_mapper.ww.get_knowledge()
         q = queue.Queue()
         q.put((0, 0))
-        already_seen = [[False for i in range(self.WORLD_SIZE)] for j in range(self.WORLD_SIZE)]
-        reachable_tiles = [[False for i in range(self.WORLD_SIZE)] for j in range(self.WORLD_SIZE)]
+        already_seen = [
+            [False for i in range(self.WORLD_SIZE)] for j in range(self.WORLD_SIZE)
+        ]
+        reachable_tiles = [
+            [False for i in range(self.WORLD_SIZE)] for j in range(self.WORLD_SIZE)
+        ]
         self.reachable_golds = []
         while not q.empty():
             (current_i, current_j) = q.get()
@@ -174,7 +178,12 @@ class Explorer:
                         self.reachable_golds.append((i, j))
 
         self.my_mapper.beauty_print(reachable_tiles)
-        self.walls = tuple((i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) if not reachable_tiles[i][j])
+        self.walls = tuple(
+            (i, j)
+            for i in range(self.WORLD_SIZE)
+            for j in range(self.WORLD_SIZE)
+            if not reachable_tiles[i][j]
+        )
 
 
 if __name__ == "__main__":

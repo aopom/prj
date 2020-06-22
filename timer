@@ -1,0 +1,9 @@
+mkdir -p times
+for i in $(seq 2 20)
+do
+    sed "s/Explorer(n=[^,]\+/Explorer(n=${i}/" explorer.py -i
+    printf "$i"
+    time python3 explorer.py >/dev/null
+    echo $SECONDS seconds since beginning of script
+    echo
+done |& tee "times/$(hostname)-commit-$(git log --oneline  | head -n1 | grep -oE "^[^ ]*")"

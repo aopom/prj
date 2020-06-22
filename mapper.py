@@ -9,7 +9,8 @@ class Mapper:
         self.verbose = verbose
         self.interrogation_count = 0
 
-        self.wumpus_found = (-1, -1)
+        self.wumpus_position = (-1, -1)
+        self.wumpus_found = False
 
         # WUMPUS WORLD
         self.ww = WumpusWorld(n=n, seed=seed)
@@ -33,6 +34,11 @@ class Mapper:
 
         # GR
         self.game_rules = []
+
+        # sets
+        self.explored_tiles = set()
+        self.last_explored_tiles = set()
+
         if verbose:
             print(f"game_rules {self.game_rules}")
 
@@ -181,13 +187,14 @@ class Mapper:
     def safe_tile3(self, gopherpysat, i, j):
         """Returns -1 if danger, 0 if dont know and 1 if safe
         """
-        # print(f"self.wumpus_found \t{self.wumpus_found}")
-        if self.wumpus_found[0] == -1:
+        # print(f"self.wumpus_position \t{self.wumpus_position}")
+        if not self.wumpus_found:
             # Are we sure there is a wumpus ?
             there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
             if there_is_a_wumpus:
-                print("############################ FOUND THE WUMPUS")
-                self.wumpus_found = (i, j)
+                print("############################ DéDUCTED THE WUMPUS")
+                self.wumpus_position = (i, j)
+                self.wumpus_found = True
                 return -1
             # Are we sure there is a pit ?
             there_is_a_pit = 0 == self.interrogate(gopherpysat, [f"-P_{i}_{j}"])
@@ -200,7 +207,7 @@ class Mapper:
             # Are we sure there is a pit ?
             there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
             return there_is_no_pit
-        elif self.wumpus_found == (i, j):
+        elif self.wumpus_position == (i, j):
             return -1
         else:
             there_is_no_pit = 0 == self.interrogate(gopherpysat, [f"P_{i}_{j}"])
@@ -215,6 +222,33 @@ class Mapper:
             or (j < self.WORLD_SIZE - 1 and knowledge[i][j + 1] != "?")
         )
 
+    def after_probe(self, i, j):
+        self.action = True
+        self.explored_tiles.add((i, j))
+        self.last_explored_tiles.add((i, j))
+        if not self.wumpus_found:
+            a, b, percepts = self.ww.get_percepts()
+            print("percepts", percepts)
+            if "W" in percepts:
+                self.wumpus_position = (i, j)
+                self.wumpus_found = True
+                print("############################ found the wumpus")
+
+    def probe(self, i, j):
+        self.ww.probe(i, j)
+        self.after_probe(i, j)
+        print(f"ninja probe {i} {j}")
+
+    def sure_cautious_probe(self, i, j):
+        self.ww.cautious_probe(i, j)
+        self.after_probe(i, j)
+        print(f"sure cautious probe {i} {j}")
+
+    def cautious_probe(self, i, j):
+        self.ww.cautious_probe(i, j)
+        self.after_probe(i, j)
+        print("cautious probe {} {}".format(i, j))
+
     def try_multiple_tiles(self, gopherpysat, tiles, start, step, knowledge):
         for clause in knowledge:
             gopherpysat.push_pretty_clause(clause)
@@ -224,17 +258,13 @@ class Mapper:
             index += step
             safe = self.safe_tile3(gopherpysat, i, j)
             if safe == 1:
-                self.action = True
-                self.ww.probe(i, j)
-                # print(f"ninja probe {i} {j}")
+                self.probe(i, j)
             elif safe == -1:
-                self.action = True
-                self.ww.cautious_probe(i, j)
-                # print(f"sure cautious probe {i} {j}")
+                self.sure_cautious_probe(i, j)
 
     def explo_full_gopherpysat2(self):
         # première action
-        self.ww.probe(0, 0)
+        self.probe(0, 0)
         unknown_tiles = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE)]
         # While some tiles are unknown
         while len(unknown_tiles) > 0:
@@ -259,12 +289,11 @@ class Mapper:
             if not self.action and len(unknown_tiles) > 0:
                 (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
                 # (i, j) = unknown_tiles[0]
-                self.ww.cautious_probe(i, j)
-                # print("cautious probe {} {}".format(i, j))
+                self.cautious_probe(i, j)
             # self.ww.print_knowledge()
             # print()
 
 
 if __name__ == "__main__":
-    e = Mapper(n=10, seed=8, verbose=True)
+    e = Mapper(n=6, seed=50, verbose=True)
     e.main()

@@ -122,9 +122,9 @@ class WumpusWorld:
 if __name__ == "__main__":
     ww = WumpusWorld()
     print(ww.get_percepts())
-    print(ww.go_to(0, 1))
+    # print(ww.go_to(0, 1))
     print(ww.get_percepts())
     print(ww.get_position())
-    print(ww.go_to(0, 2))
+    # print(ww.go_to(0, 2))
 
-    print(ww)
+    print(ww.get_knowledge())

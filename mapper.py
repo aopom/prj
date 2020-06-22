@@ -1,11 +1,9 @@
-import random
-import threading
-import multiprocessing
+import random, threading, multiprocessing
 from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
 
 
-class Engine:
+class Mapper:
     def __init__(self, n=10, seed=23, explore_type="optimised", verbose=0):
         # DEBUG
         self.verbose = verbose
@@ -50,9 +48,6 @@ class Engine:
         print("interrogation_count : {}".format(self.interrogation_count))
         self.ww.print_knowledge()
 
-        # gold
-        self.parcours()
-
     def beauty_print(self, double_array):
         print("[")
         for line in double_array:
@@ -73,34 +68,23 @@ class Engine:
         return clauses
 
     def fill_rules(self):
-
         min_one_wumpus = []
         for i in range(self.WORLD_SIZE):
             for j in range(self.WORLD_SIZE):
                 min_one_wumpus.append(f"W_{i}_{j}")
-
         self.game_rules.append(min_one_wumpus)
-
         for i in range(self.WORLD_SIZE):
             for j in range(self.WORLD_SIZE):
                 # One thing per tile
                 self.game_rules.append([f"-G_{i}_{j}", f"-W_{i}_{j}"])
                 self.game_rules.append([f"-G_{i}_{j}", f"-P_{i}_{j}"])
                 self.game_rules.append([f"-P_{i}_{j}", f"-W_{i}_{j}"])
-
                 # One Wumpus per game
-                # for i in range(self.WORLD_SIZE):
-                # for j in range(self.WORLD_SIZE):
                 for k in range(self.WORLD_SIZE):
                     for l in range(self.WORLD_SIZE):
-                        # if i != k or j != l:
-                        # 10% plus rapide xD à l'éxecution
                         if i < k or j < l:
                             self.game_rules.append([f"-W_{i}_{j}", f"-W_{k}_{l}"])
-
                 # Pits around the Breeze
-                # for i in range(self.WORLD_SIZE):
-                # for j in range(self.WORLD_SIZE):
                 clause = [f"-B_{i}_{j}"]
                 if i > 0:
                     clause.append(f"P_{i - 1}_{j}")
@@ -111,10 +95,7 @@ class Engine:
                 if j < self.WORLD_SIZE - 1:
                     clause.append(f"P_{i}_{j + 1}")
                 self.game_rules.append(clause)
-
                 # Wumpus around the Strench
-                # for i in range(self.WORLD_SIZE):
-                # for j in range(self.WORLD_SIZE):
                 clause = [f"-S_{i}_{j}"]
                 if i > 0:
                     clause.append(f"W_{i - 1}_{j}")
@@ -125,10 +106,7 @@ class Engine:
                 if j < self.WORLD_SIZE - 1:
                     clause.append(f"W_{i}_{j + 1}")
                 self.game_rules.append(clause)
-
                 # un puit est entouré de environ 4 breeze sauf sur les bords
-                # for i in range(self.WORLD_SIZE):
-                # for j in range(self.WORLD_SIZE):
                 clause = [f"-P_{i}_{j}"]
                 if i > 0:
                     self.game_rules.append(clause + [f"B_{i - 1}_{j}"])
@@ -138,10 +116,7 @@ class Engine:
                     self.game_rules.append(clause + [f"B_{i + 1}_{j}"])
                 if j < self.WORLD_SIZE - 1:
                     self.game_rules.append(clause + [f"B_{i}_{j + 1}"])
-
                 # un wumpus est entouré de environ 4 strench sauf sur les bords
-                # for i in range(self.WORLD_SIZE):
-                # for j in range(self.WORLD_SIZE):
                 clause = [f"-W_{i}_{j}"]
                 if i > 0:
                     self.game_rules.append(clause + [f"S_{i - 1}_{j}"])
@@ -151,10 +126,7 @@ class Engine:
                     self.game_rules.append(clause + [f"S_{i + 1}_{j}"])
                 if j < self.WORLD_SIZE - 1:
                     self.game_rules.append(clause + [f"S_{i}_{j + 1}"])
-
                 # pas d'odeur donc pas de wumpus autour
-                # for i in range(self.WORLD_SIZE):
-                # for j in range(self.WORLD_SIZE):
                 clause = [f"S_{i}_{j}"]
                 # clause = [f"S_{i}_{j}", f"P_{i}_{j}"]
                 if i > 0:
@@ -165,10 +137,7 @@ class Engine:
                     self.game_rules.append(clause + [f"-W_{i + 1}_{j}"])
                 if j < self.WORLD_SIZE - 1:
                     self.game_rules.append(clause + [f"-W_{i}_{j + 1}"])
-
                 # pas de vent donc pas de puit autour
-                # for i in range(self.WORLD_SIZE):
-                # for j in range(self.WORLD_SIZE):
                 clause = [f"B_{i}_{j}", f"W_{i}_{j}"]
                 if i > 0:
                     self.game_rules.append(clause + [f"-P_{i - 1}_{j}"])
@@ -178,17 +147,7 @@ class Engine:
                     self.game_rules.append(clause + [f"-P_{i + 1}_{j}"])
                 if j < self.WORLD_SIZE - 1:
                     self.game_rules.append(clause + [f"-P_{i}_{j + 1}"])
-
         return self.game_rules
-
-    # def explo_full_cautious(self):
-    #     pass
-
-    # def explo_smart(self):
-    #     pass
-
-    # def explo_unsafe(self):
-    #     pass
 
     def interrogate(self, gopherpysat, clause):
         """Return False if clause is not compatible with gopherpysat's clauses.
@@ -222,13 +181,12 @@ class Engine:
     def safe_tile3(self, gopherpysat, i, j):
         """Returns -1 if danger, 0 if dont know and 1 if safe
         """
-
         # print(f"self.wumpus_found \t{self.wumpus_found}")
         if self.wumpus_found[0] == -1:
             # Are we sure there is a wumpus ?
             there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
             if there_is_a_wumpus:
-                print("############################33FOUND THE WUMPUS")
+                print("############################ FOUND THE WUMPUS")
                 self.wumpus_found = (i, j)
                 return -1
             # Are we sure there is a pit ?
@@ -258,24 +216,21 @@ class Engine:
         )
 
     def try_multiple_tiles(self, gopherpysat, tiles, start, step, knowledge):
-
         for clause in knowledge:
             gopherpysat.push_pretty_clause(clause)
-
         index = start
         while index < len(tiles):
             (i, j) = tiles[index]
             index += step
-
             safe = self.safe_tile3(gopherpysat, i, j)
             if safe == 1:
                 self.action = True
                 self.ww.probe(i, j)
-                print(f"ninja probe {i} {j}")
+                # print(f"ninja probe {i} {j}")
             elif safe == -1:
                 self.action = True
                 self.ww.cautious_probe(i, j)
-                print(f"sure cautious probe {i} {j}")
+                # print(f"sure cautious probe {i} {j}")
 
     def explo_full_gopherpysat2(self):
         # première action
@@ -286,53 +241,30 @@ class Engine:
             # select all unknown tiles
             knowledge = self.ww.get_knowledge()
             unknown_tiles = [(i, j) for (i, j) in unknown_tiles if knowledge[i][j] == "?"]
-
             # choose only tiles worth trying
             peripheric_tiles = [(i, j) for (i, j) in unknown_tiles if self.adjacent_to_known_tile(knowledge, i, j)]
-
             # prepare knowledge to be added to each gopherpysat
             knowledge = self.knowledge_to_clauses()
-
             # launch threads
             threads = []
-            global action
-            action = False
-
+            self.action = False
             for i in range(len(self.gopherpysats)):
                 thread = threading.Thread(target=self.try_multiple_tiles, args=(self.gopherpysats[i], peripheric_tiles, i, len(self.gopherpysats), knowledge))
                 threads.append(thread)
                 thread.start()
-
             # wait for threads
             for thread in threads:
                 thread.join()
-
             # if no tile was probed
-            if not action and len(unknown_tiles) > 0:
+            if not self.action and len(unknown_tiles) > 0:
                 (i, j) = unknown_tiles[random.randrange(len(unknown_tiles))]
+                # (i, j) = unknown_tiles[0]
                 self.ww.cautious_probe(i, j)
-                print("cautious probe {} {}".format(i, j))
+                # print("cautious probe {} {}".format(i, j))
             # self.ww.print_knowledge()
-            print()
-
-    def parcours(self):
-        self.ww.probe(0, 0)
-        # liste des golds
-        knowledge = self.ww.get_knowledge()
-        gold_list = [(i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) if "G" in knowledge[i][j]]
-        # tant que liste des golds n'est pas vide
-        while len(gold_list):
-            # TODO rank par distance de manhattan
-            (i, j) = self.ww.get_position()
-            gold_list = sorted(gold_list, key=lambda x: -(abs(x[0] - i) + abs(x[1] - j)))
-            print(gold_list)
-            # TODO A* avec distance de manhattan comme heuristique sur le 1er de la liste
-            goal = gold_list[-1]
-            # TODO delete gold_list[-1]
-            # TODO déplacement vers le gold
-            # TODO suppression du gold de la liste
+            # print()
 
 
 if __name__ == "__main__":
-    e = Engine(n=8, seed=43, verbose=True)
+    e = Mapper(n=10, seed=8, verbose=True)
     e.main()

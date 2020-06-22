@@ -28,12 +28,7 @@ class Mapper:
         self.WORLD_SIZE = self.ww.get_n()
 
         # VOC
-        self.voc = [
-            f"{letter}_{i}_{j}"
-            for i in range(self.WORLD_SIZE)
-            for j in range(self.WORLD_SIZE)
-            for letter in ["P", "W", "B", "S", "G"]
-        ]
+        self.voc = [f"{letter}_{i}_{j}" for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) for letter in ["P", "W", "B", "S", "G"]]
 
         # THREADING RELATED MATERIAL
         self.cpus = multiprocessing.cpu_count()
@@ -48,10 +43,7 @@ class Mapper:
         self.game_rules = []
 
         # sets
-        self.mapped_tiles = set()
-        self.not_mapped_tiles = set(
-            (i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE)
-        )
+        self.not_mapped_tiles = set((i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE))
         self.newly_mapped_tiles = set()
 
         if verbose:
@@ -187,9 +179,7 @@ class Mapper:
             # Are we sure there is a wumpus ?
             there_is_a_wumpus = 0 == self.interrogate(gopherpysat, [f"-W_{i}_{j}"])
             if there_is_a_wumpus:
-                print(
-                    "############################ DéDUCTED THE WUMPUS (guess_if_safe)"
-                )
+                print("############################ DéDUCTED THE WUMPUS (guess_if_safe)")
                 self.wumpus_position = (i, j)
                 self.wumpus_found = True
                 return -1
@@ -238,7 +228,6 @@ class Mapper:
         self.action = True
 
         # sets mangement
-        self.mapped_tiles.add((i, j))
         self.newly_mapped_tiles.add((i, j))
         self.not_mapped_tiles.discard((i, j))
 
@@ -293,7 +282,6 @@ class Mapper:
         """
         # première action
         self.probe(0, 0)
-        # on a 0,0 dans mapped_tiles
         to_map_next = set()
 
         # While some tiles are unknown
@@ -303,7 +291,7 @@ class Mapper:
             self.new_kno = []
 
             to_map_next.clear()
-            
+
             for (i, j) in self.newly_mapped_tiles:
                 to_map_next |= self.neighbours(i, j) & self.not_mapped_tiles
 
@@ -315,10 +303,7 @@ class Mapper:
             threads = []
             self.action = False
             for i in range(self.cpus):
-                thread = threading.Thread(
-                    target=self.thread_guess_and_probe,
-                    args=(self.gopherpysats[i], tile_playlist, i),
-                )
+                thread = threading.Thread(target=self.thread_guess_and_probe, args=(self.gopherpysats[i], tile_playlist, i),)
                 threads.append(thread)
                 thread.start()
             # wait for threads

@@ -3,8 +3,14 @@
 import heapq, queue
 from mapper import Mapper
 from typing import Dict, Tuple, Sequence, Set
+from PIL import Image
+from PIL import ImageDraw
+import random as rnd
+import numpy as np
+import matplotlib.pyplot as plt
 
 Point = Tuple[int, int]
+
 Segment = Tuple[Point, Point]
 
 
@@ -20,6 +26,7 @@ class SquareGrid:
 
     def passable(self, id):
         return id not in self.walls
+
 
     def neighbors(self, id):
         (x, y) = id
@@ -52,6 +59,10 @@ class Explorer:
         self.my_mapper = Mapper(n=self.WORLD_SIZE, seed=self.seed, verbose=True)
         self.reachable_golds = []
         self.walls = []
+        
+        self.im = Image.new('RGBA', (self.WORLD_SIZE, self.WORLD_SIZE), (255,255,255,255))
+        self.draw = ImageDraw.Draw(self.im)
+
         # self.grid
 
     def closest_heuristic_astar(self, origin, destinations):
@@ -111,18 +122,45 @@ class Explorer:
 
         total_steps = 0
 
-        for i in range(len(self.reachable_golds) - 1):
+        self.draw_summary()
+        nb_reachable_golds = len(self.reachable_golds)
+        for i in range(nb_reachable_golds - 1):
             start = self.reachable_golds[i]
             goal = self.reachable_golds[i + 1]
             path = self.a_star_search(start, goal)
             print(path)
+
+            color  = (int(i/nb_reachable_golds * 100), int(200), int(rnd.random() * 256), 255) 
             for (i, j) in path:
+                self.draw.point((i, j), fill=color)
                 if self.my_mapper.ww.get_position() != (i, j):
                     self.my_mapper.ww.go_to(i, j)
                     total_steps += 1
 
+            # STEP BY STEP DRAWING            
+            # self.draw_summary()
+            # plt.imshow(np.asarray(self.im), origin='lower')
+            # plt.show()
+            # input("Press Enter to continue...")
+
+
         print("reachable golds : ", len(self.reachable_golds))
         print("total steps : ", total_steps)
+
+
+        
+        
+    def draw_summary(self):
+        for wall in self.walls:
+            # print("wall", wall)
+            self.draw.point(wall, fill=(50, 50, 50, 200))
+        
+        for reachable_gold in self.reachable_golds:
+            self.draw.point(reachable_gold, fill=(255, 80, 0, 255))
+
+
+        plt.imshow(np.asarray(self.im), origin='lower')
+        plt.show()
 
     def salesman_sort(self):
         # first loop
@@ -130,7 +168,7 @@ class Explorer:
         sorted_golds = [start]
         print("golds:", self.reachable_golds)
         while self.reachable_golds:
-            start = self.closest_heuristic_manhattan(start, self.reachable_golds)
+            start = self.closest_heuristic_astar(start, self.reachable_golds)
             sorted_golds.append(start)
             print("start", start)
             self.reachable_golds.remove(start)
@@ -295,7 +333,7 @@ if __name__ == "__main__":
     # c3 = (-290, 4)
 
     # ab = (a, b)
-    e = Explorer(n=47, seed=42 * 1001)
+    e = Explorer(n=40, seed=42 * 1001)
 
     # print(e.which_side(ab, c0))
     # print(e.which_side(ab, c1))

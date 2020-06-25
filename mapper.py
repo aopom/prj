@@ -322,5 +322,5 @@ class Mapper:
 
 
 if __name__ == "__main__":
-    e = Mapper(n=50, seed=50, verbose=True)
-    e.dumb_main()
+    mapper = Mapper(n=50, seed=50, verbose=True)
+    mapper.dumb_main()

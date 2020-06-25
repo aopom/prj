@@ -61,6 +61,12 @@ class Mapper:
         print("interrogation_count : {}".format(self.interrogation_count))
         self.ww.print_knowledge()
 
+    def dumb_main(self):
+        for i in range(self.WORLD_SIZE):
+            for j in range(self.WORLD_SIZE):
+                self.ww.cautious_probe(i, j)
+
+
     def beauty_print(self, double_array):
         print("[")
         for line in double_array:
@@ -316,5 +322,5 @@ class Mapper:
 
 
 if __name__ == "__main__":
-    e = Mapper(n=20, seed=50, verbose=True)
-    e.main()
+    e = Mapper(n=50, seed=50, verbose=True)
+    e.dumb_main()

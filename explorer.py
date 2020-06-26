@@ -9,13 +9,19 @@ import random as rnd
 import numpy as np
 import matplotlib.pyplot as plt
 
-Point = Tuple[int, int]
+__author__ = "Joris Placette, Paco Pompeani"
+__copyright__ = "Copyright 2020, UTC"
+__license__ = "LGPL-3.0"
+__version__ = "0.1.0"
+__maintainer__ = "Joris Placette, Paco Pompeani"
+__status__ = "dev"
 
+Point = Tuple[int, int]
 Segment = Tuple[Point, Point]
 
 
 class SquareGrid:
-    # Used by the A* algorithm
+    """Used by the A* algorithm"""
     def __init__(self, width, height, walls=[]):
         self.width = width
         self.height = height
@@ -39,7 +45,8 @@ class SquareGrid:
 
 
 class PriorityQueue:
-    # Used by the A* algorithm
+    """Used by the A* algorithm"""
+
     def __init__(self):
         self.elements = []
 
@@ -54,7 +61,8 @@ class PriorityQueue:
 
 
 class Explorer:
-    # Our main class
+    """Our main class"""
+
     def __init__(self, mapper=0, n=10, seed=42, verbose=False):
         if mapper:
             # If the mapper is provided, it has already done its main()
@@ -74,12 +82,14 @@ class Explorer:
         self.walls = []
 
         # used to construct a graphical display
+        print("Please check the generated image (may be in a new window).")
         self.im = Image.new("RGBA", (self.WORLD_SIZE, self.WORLD_SIZE), (255, 255, 255, 255))
         self.draw = ImageDraw.Draw(self.im)
 
     def closest_heuristic_astar(self, origin, destinations):
-        # heuristic to choose the next gold to reach
-        # using A*
+        """heuristic to choose the next gold to reach
+        using A*
+        """
         if destinations:
             distance = self.WORLD_SIZE * self.WORLD_SIZE + 1
             closest = None
@@ -93,9 +103,10 @@ class Explorer:
             return None
 
     def closest_heuristic_manhattan(self, origin, destinations):
-        # Unused
-        # heuristic to choose the next gold to reach
-        # using Manhattan distance
+        """Unused
+        heuristic to choose the next gold to reach
+        using Manhattan distance
+        """
         if destinations:
             distance = self.WORLD_SIZE * self.WORLD_SIZE + 1
             closest = None
@@ -109,13 +120,13 @@ class Explorer:
             return None
 
     def manhattan(self, a, b):
-        # Unused
+        """Unused"""
         (x1, y1) = a
         (x2, y2) = b
         return abs(x1 - x2) + abs(y1 - y2)
 
     def test_astar(self):
-        # Unused
+        """Unused"""
         self.my_mapper.main()
         self.reachable_tiles_and_golds()
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
@@ -126,7 +137,7 @@ class Explorer:
         print(path)
 
     def run(self):
-        # Main run for the wumpus client's phase 2
+        """Main run for the wumpus client's phase 2"""
 
         self.reachable_tiles_and_golds()
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
@@ -154,7 +165,7 @@ class Explorer:
         print("total steps : ", total_steps)
 
     def run_phase2_only(self):
-        # Main run to run the standalone phase 2
+        """Main run to run the standalone phase 2"""
         self.reachable_tiles_and_golds()
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
 
@@ -185,7 +196,7 @@ class Explorer:
         print("total steps : ", total_steps)
 
     def draw_summary(self):
-        # graphical display
+        """graphical display"""
         for wall in self.walls:
             # print("wall", wall)
             self.draw.point(wall, fill=(50, 50, 50, 200))
@@ -197,9 +208,10 @@ class Explorer:
         plt.show()
 
     def salesman_sort(self):
-        # Sort the golds
-        # Starting with (0,0)
-        # We choose the next gold by computing the closest to the current one
+        """Sort the golds
+        Starting with (0,0)
+        We choose the next gold by computing the closest to the current one
+        """
         start = (0, 0)
         sorted_golds = [start]
         # print("golds:", self.reachable_golds)
@@ -229,10 +241,10 @@ class Explorer:
         self.reachable_golds = sorted_golds
 
     def which_side(self, segment: Segment, point: Point):
-        # Used by self.crossed
         """ Return -1 si en dessous / gouche
             Return 0 si point sur la droite (a,b)
             Return 1 sinon (dessus/froite)
+            Used by self.crossed
         """
         ((ax, ay), (bx, by)) = segment
         (cx, cy) = point
@@ -287,7 +299,7 @@ class Explorer:
         return False
 
     def a_star_search(self, start, goal):
-        # Used to go from one gold to another
+        """Used to go from one gold to another"""
         frontier = PriorityQueue()
         frontier.put(start, 0)
         came_from = {}
@@ -318,14 +330,16 @@ class Explorer:
         return path[::-1]
 
     def a_star_distance(self, a, b):
-        # Used as heuristic
+        """Used as heuristic"""
         return len(self.a_star_search(a, b))
 
     def reachable_tiles_and_golds(self):
-        # First processing made by the Explorer
-        # Uses the BFS algorithm
-        # Compute an boolean 2D array of all reachable tiles
-        # List in the same pass all the reachable golds
+        """
+        First processing made by the Explorer
+        Uses the BFS algorithm
+        Compute an boolean 2D array of all reachable tiles
+        List in the same pass all the reachable golds
+        """
         knowledge = self.my_mapper.full_knowledge
         q = queue.Queue()
         q.put((0, 0))
@@ -357,5 +371,5 @@ class Explorer:
 
 
 if __name__ == "__main__":
-    e = Explorer(n=40, seed=42 * 1001)
+    e = Explorer(n=30, seed=42 * 1001)
     e.run_phase2_only()

@@ -3,6 +3,13 @@ from lib.gopherpysat import Gophersat
 from lib.wumpus import WumpusWorld
 import timeit
 
+__author__ = "Joris Placette, Paco Pompeani"
+__copyright__ = "Copyright 2020, UTC"
+__license__ = "LGPL-3.0"
+__version__ = "0.1.0"
+__maintainer__ = "Joris Placette, Paco Pompeani"
+__status__ = "dev"
+
 
 class Mapper:
     def __init__(self, ww=0, n=10, seed=23, explore_type="optimised", verbose=0):

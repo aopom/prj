@@ -6,11 +6,11 @@ from mapper import Mapper
 from explorer import Explorer
 
 
-__author__ = "Joris Placette & Paco Pompeani"
+__author__ = "Joris Placette,  Paco Pompeani"
 __copyright__ = "Copyright 2020, UTC"
 __license__ = "LGPL-3.0"
 __version__ = "0.1.0"
-__maintainer__ = "Joris Placette & Paco Pompeani"
+__maintainer__ = "Joris Placette,  Paco Pompeani"
 __status__ = "dev"
 
 

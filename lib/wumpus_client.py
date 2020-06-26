@@ -5,7 +5,7 @@ import sys
 __author__ = "Sylvain Lagrue"
 __copyright__ = "Copyright 2020, UTC"
 __license__ = "LGPL-3.0"
-__version__ = "0.12.1-rc3"
+__version__ = "1.0.0"
 __maintainer__ = "Sylvain Lagrue"
 __email__ = "sylvain.lagrue@utc.fr"
 __status__ = "dev"
@@ -27,6 +27,8 @@ class WumpusWorldRemote:
         self.maze_number = 0
         self.current_size = 0
 
+        self._session = requests.Session()
+
         self.register()
 
     def _request(self, cmd: str, position={"x": 0, "y": 0}):
@@ -37,7 +39,7 @@ class WumpusWorldRemote:
             "position": position,
         }
 
-        r = requests.post(f"{self._basename}/{cmd}", json=data)
+        r = self._session.post(f"{self._basename}/{cmd}", json=data)
 
         if r.status_code != requests.codes.ok:
             print("Erreur requête:", r.text)
@@ -95,11 +97,6 @@ class WumpusWorldRemote:
         except requests.exceptions.ConnectionError:
             return ("[Err]", None, None)
 
-        print(r)
-
-        # if r["status"] != "[OK]":
-        #     return "[OK]", msg, size
-
         status = r["status"]
         msg = r["msg"]
         if "grid_size" in r:
@@ -120,8 +117,7 @@ class WumpusWorldRemote:
 
         try:
             data = self._request("end-map")
-        except requests.exceptions.HTTPError as e:
-            print("error: ", e)
+        except requests.exceptions.HTTPError:
             assert False, "end_map fatal error: the map was not totally discovered!"
 
         self.phase = 2
@@ -192,14 +188,18 @@ class WumpusWorldRemote:
         return status, msg, data.get("action_cost", 0)
 
     def get_position(self):
-        assert self.phase == 2, "get_position called but you're not in Phase 2 (are you dead?)..."
+        assert (
+            self.phase == 2
+        ), "get_position called but you're not in Phase 2 (are you dead?)..."
 
         data = self._request("get-position")
 
         return data["position"]["x"], data["position"]["y"]
 
     def go_to(self, i: int, j: int):
-        assert self.phase == 2, "go_to called but you're not in Phase 2 (are you dead?)..."
+        assert (
+            self.phase == 2
+        ), "go_to called but you're not in Phase 2 (are you dead?)..."
         assert not self.dead, "go_to called but you're dead!"
 
         data = self._request("go-to", position={"x": i, "y": j})
@@ -229,7 +229,10 @@ class WumpusWorldRemote:
         assert self.phase == 2, "maze_completed called but you're not in Phase 2..."
 
         if not self.dead:
-            assert self.get_position() == (0, 0,), "Fatal error: you must be in (0,0) or dead to call maze_completed"
+            assert self.get_position() == (
+                0,
+                0,
+            ), "Fatal error: you must be in (0,0) or dead to call maze_completed"
 
         self.phase = 0
 

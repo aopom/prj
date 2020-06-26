@@ -71,16 +71,17 @@ class Mapper:
         """Debug alt to self.main()"""
         for i in range(self.WORLD_SIZE):
             for j in range(self.WORLD_SIZE):
-                self.generic_probe(i, j, self.cautious_probe, "dumb cautious", 0)
+                self.generic_probe(i, j, self.ww.cautious_probe, "", 0)
 
     def beauty_print(self, double_array):
-        """Makes 2Darrays print beatifuly !"""
+        """Makes 2Darrays print beatifully !"""
         print("[")
         for line in double_array:
             print(line, ",", sep="")
         print("]")
 
     def fill_rules(self):
+        """ All static rules made by our little brains are defined here"""
         min_one_wumpus = []
         for i in range(self.WORLD_SIZE):
             for j in range(self.WORLD_SIZE):
@@ -216,14 +217,17 @@ class Mapper:
         return neighbours_tiles
 
     def generic_probe(self, i, j, probe_function, probe_name, wumpus_found_index):
-        """Probing Strategy"""
+        """The type of probe is given by the probe function argument
+           This function probes and updates all the state variables according to the answer
+        """
         status, percepts, cost = probe_function(i, j)
-        # status, percepts, cost = self.cautious_probe(i, j)
+
         # print(f"{i} {j} : {probe_name}, status: {status}, percepts: {percepts}")
+        print(probe_name, end="")
 
         self.action = True
 
-        # sets mangement
+        # Sets management
         self.newly_mapped_tiles.add((i, j))
         self.not_mapped_tiles.discard((i, j))
 
@@ -244,6 +248,11 @@ class Mapper:
                 self.wumpus_found[wumpus_found_index] = True
 
     def thread_guess_and_probe(self, gopherpysat, tiles, start):
+        """ The function executed by the thread workers.
+            Try to determine for each tile given, it it's safe, unsafe or if we lack knowledge.
+            If it's safe, we probe the tile, if it's not, we cautious_probe the tile.
+            Work on all (start + self.cpus * n) tuples of the tiles array.
+        """
         for clause in self.precedent_iter_kno:
             gopherpysat.push_pretty_clause(clause)
 
@@ -253,23 +262,15 @@ class Mapper:
             index += self.cpus
             safe = self.guess_if_safe(gopherpysat, i, j, start)
             if safe == 1:
-                self.generic_probe(i, j, self.probe, "probe", start)
+                self.generic_probe(i, j, self.ww.probe, ".", start)
             elif safe == -1:
-                self.generic_probe(i, j, self.cautious_probe, "cautious_probe", start)
-
-    def probe(self, i, j):
-        print(".", end="")
-        return self.ww.probe(i, j)
-
-    def cautious_probe(self, i, j):
-        print("C", end="")
-        return self.ww.cautious_probe(i, j)
+                self.generic_probe(i, j, self.ww.cautious_probe, "c", start)
 
     def mapper_loop(self):
         """ main loop pour explorer le plateau de jeu
         """
         # première action
-        self.generic_probe(0, 0, self.probe, "start probe", 0)
+        self.generic_probe(0, 0, self.ww.probe, ".", 0)
         to_map_next = set()
 
         # While some tiles are unknown
@@ -304,7 +305,7 @@ class Mapper:
             # if no tile was probed
             if not self.action and self.not_mapped_tiles:
                 (i, j) = next(iter(self.not_mapped_tiles))
-                self.generic_probe(i, j, self.cautious_probe, "cautious_probe", 0)
+                self.generic_probe(i, j, self.ww.cautious_probe, "C", 0)
 
             if True in self.wumpus_found:
                 self.wumpus_found = [True for i in range(self.cpus)]

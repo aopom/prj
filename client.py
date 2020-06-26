@@ -17,7 +17,7 @@ __status__ = "dev"
 def client():
     # Connexion au serveur
     server = "http://82.65.60.26:8080"
-    groupe_id = "Binôme de projet 40"  # votre vrai numéro de groupe
+    groupe_id = "Binome de projet 40"  # votre vrai numéro de groupe
     names = "Joris & Paco"  # vos prénoms et noms
 
     try:

@@ -58,6 +58,7 @@ class Explorer:
             self.WORLD_SIZE = mapper.WORLD_SIZE
         else:
             self.my_mapper = Mapper(n=n, seed=seed, verbose=verbose)
+            self.my_mapper.dumb_main()
             self.WORLD_SIZE = n
 
         self.reachable_golds = []
@@ -147,6 +148,38 @@ class Explorer:
         print("reachable golds : ", len(self.reachable_golds))
         print("total steps : ", total_steps)
 
+    def run_phase2(self):
+        self.reachable_tiles_and_golds()
+        self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
+
+        self.salesman_sort()
+
+        total_steps = 0
+
+        nb_reachable_golds = len(self.reachable_golds)
+        for i in range(nb_reachable_golds - 1):
+            start = self.reachable_golds[i]
+            goal = self.reachable_golds[i + 1]
+            path = self.a_star_search(start, goal)
+            print(path)
+
+            color = (int(i / nb_reachable_golds * 100), int(200), int(rnd.random() * 256), 255)
+            for (i, j) in path:
+                self.draw.point((i, j), fill=color)
+                if self.my_mapper.ww.get_position() != (i, j):
+                    self.my_mapper.ww.go_to(i, j)
+                    total_steps += 1
+
+            # STEP BY STEP DRAWING
+            # self.draw_summary()
+            # plt.imshow(np.asarray(self.im), origin='lower')
+            # plt.show()
+            # input("Press Enter to continue...")
+
+        self.draw_summary()
+        print("reachable golds : ", len(self.reachable_golds))
+        print("total steps : ", total_steps)
+
     def draw_summary(self):
         for wall in self.walls:
             # print("wall", wall)
@@ -186,8 +219,6 @@ class Explorer:
                         sorted_golds[j] = b
 
         self.reachable_golds = sorted_golds
-        # print(self.reachable_golds)
-        # decrossin'
 
     def which_side(self, segment: Segment, point: Point):
         """ Return -1 si en dessous / gouche
@@ -336,4 +367,4 @@ if __name__ == "__main__":
     # print(e.which_side(ab, c1))
     # print(e.which_side(ab, c2))
     # print(e.which_side(ab, c3))
-    e.run()
+    e.run_phase2()

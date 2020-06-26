@@ -1,5 +1,4 @@
 from lib.wumpus_client import WumpusWorldRemote
-
 from requests.exceptions import HTTPError
 
 # SWAG
@@ -32,9 +31,7 @@ def client():
     status, msg, size = wwr.next_maze()
     maze = 1
     while status == "[OK]":
-        print(f"MAZE n°{maze}")
-        print(msg)
-        print("taille: ", size)
+        print(f"MAZE n°{maze}, taille: {size}, message: {msg}")
 
         ###################
         ##### PHASE 1 #####
@@ -60,10 +57,10 @@ def client():
 
         print(res)
 
+        print()
         # Récupération du labyrinthe suivant
         maze += 1
         status, msg, size = wwr.next_maze()
-        print(status, msg, size)
 
 
 if __name__ == "__main__":

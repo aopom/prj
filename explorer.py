@@ -111,7 +111,7 @@ class Explorer:
         end = (self.WORLD_SIZE - 1, self.WORLD_SIZE - 1)
 
         path = self.a_star_search(start, end)
-        print(path)
+        # print(path)
 
     def run(self):
         # self.my_mapper.dumb_main()
@@ -129,7 +129,7 @@ class Explorer:
             start = self.reachable_golds[i]
             goal = self.reachable_golds[i + 1]
             path = self.a_star_search(start, goal)
-            print(path)
+            # print(path)
 
             color = (int(i / nb_reachable_golds * 100), int(200), int(rnd.random() * 256), 255)
             for (i, j) in path:
@@ -162,11 +162,11 @@ class Explorer:
         # first loop
         start = (0, 0)
         sorted_golds = [start]
-        print("golds:", self.reachable_golds)
+        # print("golds:", self.reachable_golds)
         while self.reachable_golds:
             start = self.closest_heuristic_astar(start, self.reachable_golds)
             sorted_golds.append(start)
-            print("start", start)
+            # print("start", start)
             self.reachable_golds.remove(start)
         sorted_golds.append((0, 0))
 
@@ -180,13 +180,13 @@ class Explorer:
                     c = sorted_golds[j]
                     d = sorted_golds[j + 1]
                     if self.crossed((a, b), (c, d)):
-                        print("decrossing ", (a, b), (c, d))
+                        # print("decrossing ", (a, b), (c, d))
                         cross_found = True
                         sorted_golds[i + 1] = c
                         sorted_golds[j] = b
 
         self.reachable_golds = sorted_golds
-        print(self.reachable_golds)
+        # print(self.reachable_golds)
         # decrossin'
 
     def which_side(self, segment: Segment, point: Point):
@@ -307,7 +307,7 @@ class Explorer:
                     if "G" in knowledge[i][j]:
                         self.reachable_golds.append((i, j))
 
-        self.my_mapper.beauty_print(reachable_tiles)
+        # self.my_mapper.beauty_print(reachable_tiles)
         self.walls = tuple((i, j) for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) if not reachable_tiles[i][j])
 
 

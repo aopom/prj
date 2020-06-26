@@ -5,7 +5,7 @@ import timeit
 
 
 class Mapper:
-    def __init__(self, n=10, seed=23, explore_type="optimised", verbose=0):
+    def __init__(self, ww=0, n=10, seed=23, explore_type="optimised", verbose=0):
         # DEBUG
         self.verbose = verbose
         self.interrogation_count = 0
@@ -13,6 +13,11 @@ class Mapper:
         # self.precedent_iteration_knowledge = []
         self.precedent_iter_kno = []
 
+        # used by Explorer
+        self.full_knowledge = [["" for i in range(n)] for j in range(n)]
+        self.full_knowledge_lock = threading.Lock()
+
+        # used to add only the new knowledge to the gophersats
         self.new_kno = []
         self.new_kno_lock = threading.Lock()
 
@@ -20,12 +25,16 @@ class Mapper:
         self.wumpus_found = False
 
         # WUMPUS WORLD
-        self.ww = WumpusWorld(n=n, seed=seed)
-        print(self.ww)
-        if self.verbose:
-            print("cost : {}".format(self.ww.get_cost()))
+        if ww:
+            self.ww = ww
+            self.WORLD_SIZE = n
+        else:
+            self.ww = WumpusWorld(n=n, seed=seed)
+            self.WORLD_SIZE = self.ww.get_n()
+            if self.verbose:
+                print("cost : {}".format(self.ww.get_cost()))
 
-        self.WORLD_SIZE = self.ww.get_n()
+        print(self.ww)
 
         # VOC
         self.voc = [f"{letter}_{i}_{j}" for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) for letter in ["P", "W", "B", "S", "G"]]
@@ -57,15 +66,15 @@ class Mapper:
                 gs.push_pretty_clause(clause)
 
         self.mapper_loop()
-        print("cost : {}".format(self.ww.get_cost()))
+        # print("cost : {}".format(self.ww.get_cost()))
         print("interrogation_count : {}".format(self.interrogation_count))
-        self.ww.print_knowledge()
+        # self.ww.print_knowledge()
 
     def dumb_main(self):
         for i in range(self.WORLD_SIZE):
             for j in range(self.WORLD_SIZE):
-                self.ww.cautious_probe(i, j)
-
+                # self.ww.cautious_probe(i, j)
+                self.generic_probe(i, j, self.cautious_probe, "dumb cautious")
 
     def beauty_print(self, double_array):
         print("[")
@@ -230,6 +239,33 @@ class Mapper:
             or (j < self.WORLD_SIZE - 1 and knowledge[i][j + 1] != "?")
         )
 
+    def generic_probe(self, i, j, probe_function, probe_name):
+        status, percepts, cost = probe_function(i, j)
+        print(f"{probe_name} probe {i} {j}, status: {status}")
+
+        self.action = True
+
+        # sets mangement
+        self.newly_mapped_tiles.add((i, j))
+        self.not_mapped_tiles.discard((i, j))
+
+        with self.full_knowledge_lock:
+            self.full_knowledge[i][j] = percepts
+
+        for letter in "PWBSG":
+            if letter in percepts:
+                with self.new_kno_lock:
+                    self.new_kno.append([f"{letter}_{i}_{j}"])
+            else:
+                with self.new_kno_lock:
+                    self.new_kno.append([f"-{letter}_{i}_{j}"])
+
+        if not self.wumpus_found:
+            if "W" in percepts:
+                self.wumpus_position = (i, j)
+                self.wumpus_found = True
+                print("############################ found the wumpus (after probe)")
+
     def after_probe(self, i, j):
         self.action = True
 
@@ -253,19 +289,19 @@ class Mapper:
                 print("############################ found the wumpus (after probe)")
 
     def probe(self, i, j):
-        self.ww.probe(i, j)
-        self.after_probe(i, j)
-        print(f"ninja probe {i} {j}")
+        return self.ww.probe(i, j)
+        # self.after_probe(i, j)
+        # print(f"ninja probe {i} {j}")
 
-    def sure_cautious_probe(self, i, j):
-        self.ww.cautious_probe(i, j)
-        self.after_probe(i, j)
-        print(f"sure cautious probe {i} {j}")
+    # def sure_cautious_probe(self, i, j):
+    #     return self.ww.cautious_probe(i, j)
+    #     self.after_probe(i, j)
+    #     print(f"sure cautious probe {i} {j}")
 
     def cautious_probe(self, i, j):
-        self.ww.cautious_probe(i, j)
-        self.after_probe(i, j)
-        print("cautious probe {} {}".format(i, j))
+        return self.ww.cautious_probe(i, j)
+        # self.after_probe(i, j)
+        # print("cautious probe {} {}".format(i, j))
 
     def thread_guess_and_probe(self, gopherpysat, tiles, start):
         # print("Push...",start)
@@ -279,9 +315,11 @@ class Mapper:
             index += self.cpus
             safe = self.guess_if_safe(gopherpysat, i, j)
             if safe == 1:
-                self.probe(i, j)
+                self.generic_probe(i, j, self.probe, "ninja")
+                # self.probe(i, j)
             elif safe == -1:
-                self.sure_cautious_probe(i, j)
+                self.generic_probe(i, j, self.cautious_probe, "sure cautious")
+                # self.sure_cautious_probe(i, j)
 
     def mapper_loop(self):
         """ main loop pour explorer tout 
@@ -318,7 +356,8 @@ class Mapper:
             # if no tile was probed
             if not self.action and self.not_mapped_tiles:
                 (i, j) = next(iter(self.not_mapped_tiles))
-                self.cautious_probe(i, j)
+                # self.cautious_probe(i, j)
+                self.generic_probe(i, j, self.cautious_probe, "cautious")
 
 
 if __name__ == "__main__":

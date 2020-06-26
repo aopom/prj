@@ -5,7 +5,7 @@ import sys
 __author__ = "Sylvain Lagrue"
 __copyright__ = "Copyright 2020, UTC"
 __license__ = "LGPL-3.0"
-__version__ = "0.5.0"
+__version__ = "0.12.1-rc3"
 __maintainer__ = "Sylvain Lagrue"
 __email__ = "sylvain.lagrue@utc.fr"
 __status__ = "dev"
@@ -16,14 +16,18 @@ def perror(*args, **kwargs):
 
 
 class WumpusWorldRemote:
-    def __init__(self, server: str, group: str, members: str):
+    def __init__(self, server: str, group: str, members: str, log=False):
         self._basename = server + "/wumpus"
         self._members = members
         self._id = group
         self._token = "No Defined..."
-        self.register()
         self.phase = 0
         self.dead = False
+        self.log = log
+        self.maze_number = 0
+        self.current_size = 0
+
+        self.register()
 
     def _request(self, cmd: str, position={"x": 0, "y": 0}):
         data = {
@@ -36,16 +40,35 @@ class WumpusWorldRemote:
         r = requests.post(f"{self._basename}/{cmd}", json=data)
 
         if r.status_code != requests.codes.ok:
+            print("Erreur requête:", r.text)
             r.raise_for_status()
 
-        # TODO: gestion des erreurs json
         answer = r.json()
 
-        # print("REQUEST:", cmd)
-        # pprint(data)
-        # pprint(answer)
+        if self.log:
+            print("[log] REQUEST to server:", cmd)
+            print("[log]", end="")
+            pprint(data)
+            print("[log] ANSWER:")
+            print("[log]", end="")
+            pprint(answer)
+            print()
 
         return answer
+
+    def compute_gold(self, data):
+        gold = {}
+
+        gold["reward_phase1"] = data.get("reward_phase1", 0)
+        gold["cost_phase1"] = data.get("cost_phase1", 0)
+
+        gold["reward_phase2"] = data.get("reward_phase2", 0)
+        gold["cost_phase2"] = data.get("cost_phase2", 0)
+
+        gold["total_cost"] = data.get("total_cost", 0)
+        gold["total_reward"] = data.get("total_reward", 0)
+
+        return gold
 
     def register(self):
         r = self._request("register")
@@ -55,7 +78,14 @@ class WumpusWorldRemote:
     def get_status(self):
         data = self._request("status")
 
-        return data["phase"], (data["position"]["x"], data["position"]["y"])
+        return (data["phase"], (data["position"]["x"], data["position"]["y"]))
+
+    def get_gold_infos(self):
+        data = self._request("status")
+
+        gold = self.compute_gold(data)
+
+        return gold
 
     def next_maze(self):
         assert self.phase == 0, "next_maze called but you're not in Phase 0..."
@@ -65,23 +95,33 @@ class WumpusWorldRemote:
         except requests.exceptions.ConnectionError:
             return ("[Err]", None, None)
 
-        # FIXME: plutôt faire un statu dans le retour
-        # if r["status"] == "[Err]":
-        #     return None
+        print(r)
 
+        # if r["status"] != "[OK]":
+        #     return "[OK]", msg, size
+
+        status = r["status"]
         msg = r["msg"]
-        size = r["grid_size"]
+        if "grid_size" in r:
+            size = r["grid_size"]
+        else:
+            size = -1
+
         self.phase = 1
         self.dead = False
 
-        return "[OK]", msg, size
+        self.maze_number += 1
+        self.current_size = size
+
+        return status, msg, size
 
     def end_map(self):
         assert self.phase == 1, "end_map called but you're not in Phase 1..."
 
         try:
             data = self._request("end-map")
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as e:
+            print("error: ", e)
             assert False, "end_map fatal error: the map was not totally discovered!"
 
         self.phase = 2
@@ -121,47 +161,45 @@ class WumpusWorldRemote:
     def know_wumpus(self, i: int, j: int):
         assert self.phase == 1, "know_wumpus called but you're not in Phase 1..."
 
-        try:
-            data = self._request("know-wumpus", {"x": i, "y": j})
-        except requests.exceptions.HTTPError as err:
-            status = [err]
-            msg = f"Error for your inference: Wumpus is not in ({i},{j}), you lose 5000..."
-            return status, msg
-
+        data = self._request("know-wumpus", {"x": i, "y": j})
         msg = data["msg"]
-        status = ["OK"]
+        status = data["status"]
 
-        return status, msg, 0
+        # For dev.
+        # assert (
+        #     status == "[OK]"
+        # ), f"Fatal error (know_wumpus): there is no Wumpus in ({i}, {j}) "
+
+        if status == "[KO]":
+            self.phase = 0
+
+        return status, msg, data.get("action_cost", 0)
 
     def know_pit(self, i: int, j: int):
         assert self.phase == 1, "know_pit called but you're not in Phase 1..."
 
-        try:
-            data = self._request("know-pit", {"x": i, "y": j})
-        except requests.exceptions.HTTPError as err:
-            pprint(
-                f"Erreur fatale dans votre déduction du Pit ({i},{j}), le jeu est fini..."
-            )
-            sys.exit(-1)
-
+        data = self._request("know-pit", {"x": i, "y": j})
         msg = data["msg"]
-        status = ["OK"]
+        status = data["status"]
 
-        return status, msg, 0
+        # For dev.
+        # assert (
+        #     status == "[OK]"
+        # ), f"Fatal error (know_pit): there is no pit in ({i}, {j}) "
+        if status == "[KO]":
+            self.phase = 0
+
+        return status, msg, data.get("action_cost", 0)
 
     def get_position(self):
-        assert (
-            self.phase == 2
-        ), "get_position called but you're not in Phase 2 (are you dead?)..."
+        assert self.phase == 2, "get_position called but you're not in Phase 2 (are you dead?)..."
 
         data = self._request("get-position")
 
         return data["position"]["x"], data["position"]["y"]
 
     def go_to(self, i: int, j: int):
-        assert (
-            self.phase == 2
-        ), "go_to called but you're not in Phase 2 (are you dead?)..."
+        assert self.phase == 2, "go_to called but you're not in Phase 2 (are you dead?)..."
         assert not self.dead, "go_to called but you're dead!"
 
         data = self._request("go-to", position={"x": i, "y": j})
@@ -191,10 +229,7 @@ class WumpusWorldRemote:
         assert self.phase == 2, "maze_completed called but you're not in Phase 2..."
 
         if not self.dead:
-            assert self.get_position() == (
-                0,
-                0,
-            ), "Fatal error: you must be in (0,0) or dead to call maze_completed"
+            assert self.get_position() == (0, 0,), "Fatal error: you must be in (0,0) or dead to call maze_completed"
 
         self.phase = 0
 
@@ -203,7 +238,9 @@ class WumpusWorldRemote:
         status = "[OK]"
         msg = data["msg"]
 
-        return status, msg, NotImplemented
+        gold = self.compute_gold(data)
+
+        return status, msg, gold
 
 
 # TODO: gérer le GOTOPIT comme une mort (direct phase 0)

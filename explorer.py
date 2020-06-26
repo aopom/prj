@@ -27,7 +27,6 @@ class SquareGrid:
     def passable(self, id):
         return id not in self.walls
 
-
     def neighbors(self, id):
         (x, y) = id
         results = [(x + 1, y), (x, y - 1), (x - 1, y), (x, y + 1)]
@@ -53,17 +52,19 @@ class PriorityQueue:
 
 
 class Explorer:
-    def __init__(self, n=10, seed=42, verbose=False):
-        self.WORLD_SIZE = n
-        self.seed = seed
-        self.my_mapper = Mapper(n=self.WORLD_SIZE, seed=self.seed, verbose=True)
+    def __init__(self, mapper=0, n=10, seed=42, verbose=False):
+        if mapper:
+            self.my_mapper = mapper
+            self.WORLD_SIZE = mapper.WORLD_SIZE
+        else:
+            self.my_mapper = Mapper(n=n, seed=seed, verbose=verbose)
+            self.WORLD_SIZE = n
+
         self.reachable_golds = []
         self.walls = []
-        
-        self.im = Image.new('RGBA', (self.WORLD_SIZE, self.WORLD_SIZE), (255,255,255,255))
-        self.draw = ImageDraw.Draw(self.im)
 
-        # self.grid
+        self.im = Image.new("RGBA", (self.WORLD_SIZE, self.WORLD_SIZE), (255, 255, 255, 255))
+        self.draw = ImageDraw.Draw(self.im)
 
     def closest_heuristic_astar(self, origin, destinations):
         if destinations:
@@ -113,7 +114,7 @@ class Explorer:
         print(path)
 
     def run(self):
-        self.my_mapper.dumb_main()
+        # self.my_mapper.dumb_main()
 
         self.reachable_tiles_and_golds()
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
@@ -122,7 +123,7 @@ class Explorer:
 
         total_steps = 0
 
-        self.draw_summary()
+        # self.draw_summary()
         nb_reachable_golds = len(self.reachable_golds)
         for i in range(nb_reachable_golds - 1):
             start = self.reachable_golds[i]
@@ -130,36 +131,31 @@ class Explorer:
             path = self.a_star_search(start, goal)
             print(path)
 
-            color  = (int(i/nb_reachable_golds * 100), int(200), int(rnd.random() * 256), 255) 
+            color = (int(i / nb_reachable_golds * 100), int(200), int(rnd.random() * 256), 255)
             for (i, j) in path:
                 self.draw.point((i, j), fill=color)
                 if self.my_mapper.ww.get_position() != (i, j):
                     self.my_mapper.ww.go_to(i, j)
                     total_steps += 1
 
-            # STEP BY STEP DRAWING            
+            # STEP BY STEP DRAWING
             # self.draw_summary()
             # plt.imshow(np.asarray(self.im), origin='lower')
             # plt.show()
             # input("Press Enter to continue...")
 
-
         print("reachable golds : ", len(self.reachable_golds))
         print("total steps : ", total_steps)
 
-
-        
-        
     def draw_summary(self):
         for wall in self.walls:
             # print("wall", wall)
             self.draw.point(wall, fill=(50, 50, 50, 200))
-        
+
         for reachable_gold in self.reachable_golds:
             self.draw.point(reachable_gold, fill=(255, 80, 0, 255))
 
-
-        plt.imshow(np.asarray(self.im), origin='lower')
+        plt.imshow(np.asarray(self.im), origin="lower")
         plt.show()
 
     def salesman_sort(self):
@@ -284,7 +280,8 @@ class Explorer:
         return len(self.a_star_search(a, b))
 
     def reachable_tiles_and_golds(self):
-        knowledge = self.my_mapper.ww.get_knowledge()
+        # knowledge = self.my_mapper.ww.get_knowledge()
+        knowledge = self.my_mapper.full_knowledge
         q = queue.Queue()
         q.put((0, 0))
         already_seen = [[False for i in range(self.WORLD_SIZE)] for j in range(self.WORLD_SIZE)]

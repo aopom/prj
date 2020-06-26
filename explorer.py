@@ -9,8 +9,14 @@ import random as rnd
 import numpy as np
 import matplotlib.pyplot as plt
 
-Point = Tuple[int, int]
+__author__ = "Joris Placette, Paco Pompeani"
+__copyright__ = "Copyright 2020, UTC"
+__license__ = "LGPL-3.0"
+__version__ = "0.1.0"
+__maintainer__ = "Joris Placette, Paco Pompeani"
+__status__ = "dev"
 
+Point = Tuple[int, int]
 Segment = Tuple[Point, Point]
 
 

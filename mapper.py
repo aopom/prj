@@ -29,12 +29,11 @@ class Mapper:
             self.ww = WumpusWorld(n=n, seed=seed)
             self.WORLD_SIZE = self.ww.get_n()
 
-
         # VOC
         self.voc = [f"{letter}_{i}_{j}" for i in range(self.WORLD_SIZE) for j in range(self.WORLD_SIZE) for letter in ["P", "W", "B", "S", "G"]]
 
         # THREADING RELATED MATERIAL
-        
+
         # self.cpus = multiprocessing.cpu_count()
         self.cpus = 1
         if self.verbose:
@@ -228,7 +227,6 @@ class Mapper:
         self.newly_mapped_tiles.add((i, j))
         self.not_mapped_tiles.discard((i, j))
 
-
         with self.full_knowledge_lock:
             self.full_knowledge[i][j] = percepts
 
@@ -260,11 +258,11 @@ class Mapper:
                 self.generic_probe(i, j, self.cautious_probe, "cautious_probe", start)
 
     def probe(self, i, j):
-        print(".", end = "")
+        print(".", end="")
         return self.ww.probe(i, j)
 
     def cautious_probe(self, i, j):
-        print("C", end = "")
+        print("C", end="")
         return self.ww.cautious_probe(i, j)
 
     def mapper_loop(self):
@@ -282,8 +280,8 @@ class Mapper:
 
             to_map_next.clear()
 
-            # To save (alot) of time, we only re-check SAT's results 
-            # for tiles close to the one we learnt something about last iteration 
+            # To save (alot) of time, we only re-check SAT's results
+            # for tiles close to the one we learnt something about last iteration
             for (i, j) in self.newly_mapped_tiles:
                 to_map_next |= self.neighbours(i, j) & self.not_mapped_tiles
 

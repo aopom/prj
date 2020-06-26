@@ -15,6 +15,7 @@ Segment = Tuple[Point, Point]
 
 
 class SquareGrid:
+    # Used by the A* algorithm
     def __init__(self, width, height, walls=[]):
         self.width = width
         self.height = height
@@ -38,6 +39,7 @@ class SquareGrid:
 
 
 class PriorityQueue:
+    # Used by the A* algorithm
     def __init__(self):
         self.elements = []
 
@@ -52,22 +54,32 @@ class PriorityQueue:
 
 
 class Explorer:
+    # Our main class
     def __init__(self, mapper=0, n=10, seed=42, verbose=False):
         if mapper:
+            # If the mapper is provided, it has already done its main()
             self.my_mapper = mapper
             self.WORLD_SIZE = mapper.WORLD_SIZE
         else:
+            # If the mapper is not provided, assume it's to because we only want to test the second phase
             self.my_mapper = Mapper(n=n, seed=seed, verbose=verbose)
             self.my_mapper.dumb_main()
             self.WORLD_SIZE = n
 
+        # used to prepare the path finding
         self.reachable_golds = []
+
+        # used to construct a SquareGrid and to make a graphical display
+        # consist of a list of tuples
         self.walls = []
 
+        # used to construct a graphical display
         self.im = Image.new("RGBA", (self.WORLD_SIZE, self.WORLD_SIZE), (255, 255, 255, 255))
         self.draw = ImageDraw.Draw(self.im)
 
     def closest_heuristic_astar(self, origin, destinations):
+        # heuristic to choose the next gold to reach
+        # using A*
         if destinations:
             distance = self.WORLD_SIZE * self.WORLD_SIZE + 1
             closest = None
@@ -81,6 +93,9 @@ class Explorer:
             return None
 
     def closest_heuristic_manhattan(self, origin, destinations):
+        # Unused
+        # heuristic to choose the next gold to reach
+        # using Manhattan distance
         if destinations:
             distance = self.WORLD_SIZE * self.WORLD_SIZE + 1
             closest = None
@@ -93,29 +108,25 @@ class Explorer:
         else:
             return None
 
-    # def closest_spiral(self, origin):
-    #     for i in range(self.WORLD_SIZE):
-    #         if
-
     def manhattan(self, a, b):
+        # Unused
         (x1, y1) = a
         (x2, y2) = b
         return abs(x1 - x2) + abs(y1 - y2)
 
     def test_astar(self):
+        # Unused
         self.my_mapper.main()
-
         self.reachable_tiles_and_golds()
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
 
         start = (0, 0)
         end = (self.WORLD_SIZE - 1, self.WORLD_SIZE - 1)
-
         path = self.a_star_search(start, end)
-        # print(path)
+        print(path)
 
     def run(self):
-        # self.my_mapper.dumb_main()
+        # Main run for the wumpus client's phase 2
 
         self.reachable_tiles_and_golds()
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
@@ -139,16 +150,11 @@ class Explorer:
                     self.my_mapper.ww.go_to(i, j)
                     total_steps += 1
 
-            # STEP BY STEP DRAWING
-            # self.draw_summary()
-            # plt.imshow(np.asarray(self.im), origin='lower')
-            # plt.show()
-            # input("Press Enter to continue...")
-
         print("reachable golds : ", len(self.reachable_golds))
         print("total steps : ", total_steps)
 
-    def run_phase2(self):
+    def run_phase2_only(self):
+        # Main run to run the standalone phase 2
         self.reachable_tiles_and_golds()
         self.grid = SquareGrid(self.WORLD_SIZE, self.WORLD_SIZE, self.walls)
 
@@ -172,8 +178,6 @@ class Explorer:
 
             # STEP BY STEP DRAWING
             # self.draw_summary()
-            # plt.imshow(np.asarray(self.im), origin='lower')
-            # plt.show()
             # input("Press Enter to continue...")
 
         self.draw_summary()
@@ -181,6 +185,7 @@ class Explorer:
         print("total steps : ", total_steps)
 
     def draw_summary(self):
+        # graphical display
         for wall in self.walls:
             # print("wall", wall)
             self.draw.point(wall, fill=(50, 50, 50, 200))
@@ -192,7 +197,9 @@ class Explorer:
         plt.show()
 
     def salesman_sort(self):
-        # first loop
+        # Sort the golds
+        # Starting with (0,0)
+        # We choose the next gold by computing the closest to the current one
         start = (0, 0)
         sorted_golds = [start]
         # print("golds:", self.reachable_golds)
@@ -203,6 +210,7 @@ class Explorer:
             self.reachable_golds.remove(start)
         sorted_golds.append((0, 0))
 
+        # Now we "uncross" all the segments formed
         cross_found = True
         while cross_found:
             cross_found = False
@@ -221,6 +229,7 @@ class Explorer:
         self.reachable_golds = sorted_golds
 
     def which_side(self, segment: Segment, point: Point):
+        # Used by self.crossed
         """ Return -1 si en dessous / gouche
             Return 0 si point sur la droite (a,b)
             Return 1 sinon (dessus/froite)
@@ -278,6 +287,7 @@ class Explorer:
         return False
 
     def a_star_search(self, start, goal):
+        # Used to go from one gold to another
         frontier = PriorityQueue()
         frontier.put(start, 0)
         came_from = {}
@@ -308,10 +318,14 @@ class Explorer:
         return path[::-1]
 
     def a_star_distance(self, a, b):
+        # Used as heuristic
         return len(self.a_star_search(a, b))
 
     def reachable_tiles_and_golds(self):
-        # knowledge = self.my_mapper.ww.get_knowledge()
+        # First processing made by the Explorer
+        # Uses the BFS algorithm
+        # Compute an boolean 2D array of all reachable tiles
+        # List in the same pass all the reachable golds
         knowledge = self.my_mapper.full_knowledge
         q = queue.Queue()
         q.put((0, 0))
@@ -343,28 +357,5 @@ class Explorer:
 
 
 if __name__ == "__main__":
-    # n = 300
-    # maze = [[False for i in range(n)]for j in range(n)]
-    # gr = SquareGrid(n,n)
-    # start = (0,0)
-    # end = (n-1, n-1)
-
-    # path = a_star_search(gr, start , end)
-    # print(path)
-
-    # a = (0, 5)
-    # b = (0, 10)
-
-    # c0 = (0, 0)
-    # c1 = (7, 200)
-    # c2 = (15, 4)
-    # c3 = (-290, 4)
-
-    # ab = (a, b)
     e = Explorer(n=40, seed=42 * 1001)
-
-    # print(e.which_side(ab, c0))
-    # print(e.which_side(ab, c1))
-    # print(e.which_side(ab, c2))
-    # print(e.which_side(ab, c3))
-    e.run_phase2()
+    e.run_phase2_only()
